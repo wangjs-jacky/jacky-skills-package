@@ -26,8 +26,16 @@
     "ai",
     "developer-tools"
   ],
-  "author": "",
+  "author": "wangjiasheng",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wangjs-jacky/jacky-skills-package.git"
+  },
+  "homepage": "https://github.com/wangjs-jacky/jacky-skills-package#readme",
+  "bugs": {
+    "url": "https://github.com/wangjs-jacky/jacky-skills-package/issues"
+  },
   "dependencies": {
     "cac": "^6.7.14",
     "@clack/prompts": "^0.11.0"

@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# TypeScript
+*.ts
+*.tsbuildinfo
+tsconfig.json
+tsup.config.ts
+
+# Source files (only publish dist)
+src/
+
+# Tests
+test/
+tests/
+*.test.ts
+*.spec.ts
+
+# Development files
+.openspec.yaml
+openspec/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+
+# Documentation (keep README.md)
+docs/
+*.md
+!README.md
+
+# Build artifacts kept for verification
+*.tgz
+
+# Claude specific
+.claude/
+
+# User-specific
+.j-skills/
+.DS_Store
