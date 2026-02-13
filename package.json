@@ -1,0 +1,43 @@
+{
+  "name": "j-skills",
+  "version": "0.1.0",
+  "description": "CLI tool for managing Claude Code Skills - link, install, and manage skills across multiple environments",
+  "type": "module",
+  "bin": {
+    "j-skills": "./bin/j-skills.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "start": "node ./dist/index.js"
+  },
+  "keywords": [
+    "cli",
+    "claude-code",
+    "skills",
+    "opencode",
+    "cursor",
+    "ai",
+    "developer-tools"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cac": "^6.7.14",
+    "@clack/prompts": "^0.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
