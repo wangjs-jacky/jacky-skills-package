@@ -58,17 +58,17 @@ JSON 输出示例：
 
 ### install - 安装 skill
 
-将 skill 安装到指定环境的项目或全局目录。
+将 skill 安装到指定环境的**项目**或**全局**目录。不传 `--global` 时为当前项目，传 `--global` 时为用户全局（对所有项目生效）。
 
 ```bash
-# 交互式安装
-j-skills install <skill-name>
+# 当前项目安装（默认）
+j-skills install <skill-name> --env claude-code,cursor
 
 # 全局安装
-j-skills install <skill-name> --global
+j-skills install <skill-name> --global --env claude-code,cursor
 
-# 指定环境
-j-skills install <skill-name> --env claude-code,cursor
+# 交互式安装（会提示选择项目/全局与环境）
+j-skills install <skill-name>
 
 # JSON 输出
 j-skills install <skill-name> --json
@@ -76,14 +76,17 @@ j-skills install <skill-name> --json
 
 ### uninstall - 卸载 skill
 
-从已安装的环境中移除 skill。
+从已安装的环境中移除 skill。不传 `--global` 则只卸当前项目，传 `--global` 则只卸全局；范围未明确时需先引导用户选择（同 install）。
 
 ```bash
-# 交互式卸载
-j-skills uninstall <skill-name>
+# 当前项目卸载
+j-skills uninstall <skill-name> --env claude-code,cursor
 
 # 全局卸载
-j-skills uninstall <skill-name> --global
+j-skills uninstall <skill-name> --global --yes
+
+# 交互式卸载
+j-skills uninstall <skill-name>
 
 # JSON 输出
 j-skills uninstall <skill-name> --json
@@ -175,10 +178,13 @@ j-skills 遵循 [Vercel Skills 规范](https://github.com/vercel-labs/skills#ava
 
 当用户询问 j-skills 相关问题时：
 
-1. 使用 `--json` 选项获取结构化输出
-2. 优先使用 `j-skills list --all` 查看完整状态
-3. 安装前先用 `j-skills link --list --json` 检查已链接的 skills
-4. 遇到问题时，让用户提供 `--json` 输出以便诊断
+1. **安装/卸载范围**：若用户未明确说「当前项目」或「全局」，先引导用户选择再执行：
+   - **当前项目**：仅当前仓库生效，不加 `--global`
+   - **全局**：对所有项目生效，加 `--global`
+2. 使用 `--json` 选项获取结构化输出
+3. 优先使用 `j-skills list --all` 查看完整状态
+4. 安装前先用 `j-skills link --list --json` 检查已链接的 skills
+5. 遇到问题时，让用户提供 `--json` 输出以便诊断
 
 ### 给开发者的建议
 

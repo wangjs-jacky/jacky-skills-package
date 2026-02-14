@@ -4,7 +4,7 @@
 import { cac } from 'cac'
 import * as p from '@clack/prompts'
 import { resolve, basename } from 'path'
-import { existsSync, cpSync, mkdirSync } from 'fs'
+import { existsSync, cpSync, mkdirSync, rmSync, lstatSync } from 'fs'
 import {
   getLinkedDir,
   getGlobalSkillsDir,
@@ -68,6 +68,11 @@ export function installToEnv(
   // 确保目标目录存在
   if (!existsSync(envPath)) {
     mkdirSync(envPath, { recursive: true })
+  }
+
+  // 如果目标已存在，先删除（包括符号链接）
+  if (existsSync(targetPath) || lstatSync(targetPath, { throwIfNoEntry: false })) {
+    rmSync(targetPath, { recursive: true, force: true })
   }
 
   // 复制 skill 到目标环境
@@ -179,6 +184,11 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
         if (isGlobal) {
           const globalSkillsDir = getGlobalSkillsDir()
           const globalPath = resolve(globalSkillsDir, skillName)
+
+          // 如果目标已存在，先删除
+          if (existsSync(globalPath) || lstatSync(globalPath, { throwIfNoEntry: false })) {
+            rmSync(globalPath, { recursive: true, force: true })
+          }
 
           // 复制到全局目录
           cpSync(found.path, globalPath, { recursive: true })
