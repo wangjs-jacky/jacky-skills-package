@@ -11,10 +11,10 @@ import { success, error, info, warn } from '../lib/log.js'
 import { isCancel } from '@clack/prompts'
 
 /**
- * 检查目录是否包含 skill.md
+ * 检查目录是否包含 SKILL.md
  */
 export function isValidSkillDir(dir: string): boolean {
-  return existsSync(resolve(dir, 'skill.md'))
+  return existsSync(resolve(dir, 'SKILL.md'))
 }
 
 /**
@@ -134,7 +134,7 @@ export function registerLinkCommand(cli: ReturnType<typeof cac>): void {
 
       // 验证目录
       if (!isValidSkillDir(targetPath)) {
-        error(`No skill.md found in ${targetPath}`)
+        error(`No SKILL.md found in ${targetPath}`)
         process.exit(1)
       }
 
