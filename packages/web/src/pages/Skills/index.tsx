@@ -65,7 +65,8 @@ export default function SkillsPage() {
 
   async function handleExport(name: string) {
     // 导出到 ~/Downloads/j-skills-export/
-    const defaultPath = `${process.env.HOME || '~'}/Downloads/j-skills-export`
+    // 服务端会处理路径
+    const defaultPath = '~/Downloads/j-skills-export'
 
     try {
       const response = await skillsApi.export([name], defaultPath)
