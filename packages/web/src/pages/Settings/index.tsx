@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../../stores'
 import { configApi, environmentsApi, type EnvironmentInfo } from '../../api/client'
-import { Settings, Check } from 'lucide-react'
+import { Settings, Check, Terminal, Cpu, Folder } from 'lucide-react'
 
 export default function SettingsPage() {
   const { config, setConfig, showToast } = useStore()
@@ -60,47 +60,95 @@ export default function SettingsPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">Settings</h2>
-        <p className="text-gray-500 dark:text-gray-400">
+    <div className="relative z-10 animate-fade-in">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <Settings size={24} className="text-[var(--color-amber)]" />
+          <h2 className="text-3xl font-bold font-mono tracking-tight">
+            <span className="gradient-text">Settings</span>
+          </h2>
+        </div>
+        <p className="text-[var(--color-text-muted)] font-mono text-sm">
           Configure j-skills preferences
         </p>
       </div>
 
-      <div className="border border-[var(--color-border)] rounded-lg p-4 mb-6">
-        <h3 className="font-medium mb-4 flex items-center gap-2">
-          <Settings size={18} />
-          Default Environments
-        </h3>
-        <p className="text-sm text-gray-500 mb-4">
+      {/* Environments Card */}
+      <div className="glass-card rounded-xl p-6 mb-6 noise-overlay">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-amber-dim)] border border-[var(--color-amber)]/30 flex items-center justify-center">
+            <Cpu size={16} className="text-[var(--color-amber)]" />
+          </div>
+          <h3 className="font-mono font-semibold text-[var(--color-text)]">
+            Default Environments
+          </h3>
+        </div>
+        <p className="text-sm text-[var(--color-text-muted)] mb-6 pl-11">
           Select the environments to use by default when installing skills.
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {environments.map((env) => (
-            <button
-              key={env.name}
-              onClick={() => toggleEnv(env.name)}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-colors ${
-                selectedEnvs.includes(env.name)
-                  ? 'border-[var(--color-primary)] bg-blue-50 dark:bg-blue-900/20'
-                  : 'border-[var(--color-border)] hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
-            >
-              <span>{env.label}</span>
-              {selectedEnvs.includes(env.name) && (
-                <Check size={16} className="text-[var(--color-primary)]" />
-              )}
-            </button>
-          ))}
+
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+          {environments.map((env) => {
+            const isSelected = selectedEnvs.includes(env.name)
+            return (
+              <button
+                key={env.name}
+                onClick={() => toggleEnv(env.name)}
+                className={`
+                  relative group flex items-center gap-3 px-4 py-3 rounded-xl
+                  border transition-all duration-300 text-left
+                  font-mono text-sm
+                  ${isSelected
+                    ? 'bg-[var(--color-primary-dim)] border-[var(--color-primary)]/40 text-[var(--color-primary)]'
+                    : 'bg-white/[0.02] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-white/[0.04] hover:text-[var(--color-text)]'
+                  }
+                `}
+              >
+                <Terminal size={18} />
+                <span className="flex-1">{env.label}</span>
+                {isSelected && (
+                  <div className="w-5 h-5 rounded-full bg-[var(--color-primary)] flex items-center justify-center">
+                    <Check size={12} className="text-black" />
+                  </div>
+                )}
+                {isSelected && (
+                  <div className="absolute inset-0 rounded-xl bg-[var(--color-primary)]/10 animate-pulse-glow"></div>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
 
+      {/* Config Preview */}
+      {config && (
+        <div className="glass-card rounded-xl p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-[var(--color-blue-dim)] border border-[var(--color-blue)]/30 flex items-center justify-center">
+              <Folder size={16} className="text-[var(--color-blue)]" />
+            </div>
+            <h3 className="font-mono font-semibold text-[var(--color-text)]">
+              Configuration
+            </h3>
+          </div>
+          <div className="bg-black/30 rounded-lg p-4 border border-[var(--color-border)]">
+            <pre className="text-xs font-mono text-[var(--color-text-muted)] overflow-auto">
+              {JSON.stringify(config, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
+
+      {/* Save Button */}
       <button
         onClick={saveConfig}
-        className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90"
+        className="group relative px-6 py-3 rounded-xl font-mono text-sm font-medium
+                   bg-[var(--color-primary)] text-black
+                   hover:shadow-[0_0_30px_var(--color-primary-glow)]
+                   transition-all duration-300 btn-glow"
       >
-        Save Settings
+        <span className="relative z-10">Save Settings</span>
       </button>
     </div>
   )

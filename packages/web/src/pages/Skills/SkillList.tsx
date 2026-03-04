@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { Search, Package } from 'lucide-react'
 import SkillCard from './SkillCard'
 import type { SkillInfo } from '../../api/client'
 
@@ -18,29 +18,54 @@ export default function SkillList({ skills, onUnlink, onToggleEnv }: SkillListPr
 
   return (
     <div>
-      <div className="mb-4">
-        <div className="relative">
+      {/* Search bar */}
+      <div className="mb-6">
+        <div className="relative group">
           <Search
             size={18}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-primary)] transition-colors"
           />
           <input
             type="text"
             placeholder="Search skills..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-[var(--color-border)] rounded-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/[0.02] border border-[var(--color-border)]
+                       text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]
+                       font-mono text-sm focus:outline-none focus:border-[var(--color-primary)]/50
+                       focus:bg-white/[0.03] transition-all duration-300"
           />
+          <div className="absolute inset-0 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none">
+            <div className="absolute inset-0 rounded-xl bg-[var(--color-primary)]/5 blur-xl"></div>
+          </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredSkills.map((skill) => (
-          <SkillCard key={skill.name} skill={skill} onUnlink={onUnlink} onToggleEnv={onToggleEnv} />
+
+      {/* Skills grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {filteredSkills.map((skill, index) => (
+          <div
+            key={skill.name}
+            className="animate-fade-in"
+            style={{ animationDelay: `${Math.min(index * 0.05, 0.5)}s` }}
+          >
+            <SkillCard skill={skill} onUnlink={onUnlink} onToggleEnv={onToggleEnv} />
+          </div>
         ))}
       </div>
+
+      {/* Empty state */}
       {filteredSkills.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          No skills found. Try linking one first.
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-[var(--color-border)] flex items-center justify-center mb-4">
+            <Package size={28} className="text-[var(--color-text-muted)]" />
+          </div>
+          <p className="text-[var(--color-text-muted)] font-mono text-sm">
+            No skills found
+          </p>
+          <p className="text-[var(--color-text-muted)]/60 font-mono text-xs mt-1">
+            Try linking one first with <code className="text-[var(--color-primary)]">j-skills link</code>
+          </p>
         </div>
       )}
     </div>
