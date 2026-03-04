@@ -2,7 +2,7 @@ mod error;
 mod models;
 mod utils;
 mod services;
-mod commands;
+pub mod commands;
 
 pub use error::{AppError, Result};
 pub use models::{SkillInfo, SkillSource, SourceFolder, AppConfig, InstallMethod};
