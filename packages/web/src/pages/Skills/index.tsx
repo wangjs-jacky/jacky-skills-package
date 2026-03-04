@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useStore } from '../../stores'
 import { skillsApi } from '../../api/client'
-import { Search, Sparkles, Package } from 'lucide-react'
+import { Sparkles, Package } from 'lucide-react'
 import SkillList from './SkillList'
 
 export default function SkillsPage() {
@@ -113,22 +113,6 @@ export default function SkillsPage() {
               {skills.filter(s => s.installedEnvironments?.length).length}
             </span> active
           </span>
-        </div>
-      </div>
-
-      {/* Search bar */}
-      <div className="relative mb-6">
-        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
-        <input
-          type="text"
-          placeholder="Search skills..."
-          className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/[0.02] border border-[var(--color-border)]
-                     text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]
-                     font-mono text-sm focus:outline-none focus:border-[var(--color-primary)]/50
-                     focus:bg-white/[0.03] transition-all duration-300"
-        />
-        <div className="absolute inset-0 rounded-xl opacity-0 focus-within:opacity-100 transition-opacity pointer-events-none">
-          <div className="absolute inset-0 rounded-xl bg-[var(--color-primary)]/5 blur-xl"></div>
         </div>
       </div>
 
