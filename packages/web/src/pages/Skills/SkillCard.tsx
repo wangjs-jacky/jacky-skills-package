@@ -91,6 +91,14 @@ export default function SkillCard({ skill, onUnlink, onToggleEnv }: SkillCardPro
           </p>
         </div>
 
+        {/* Source Folder */}
+        {skill.sourceFolder && (
+          <div className="mt-2 text-xs text-[var(--color-text-muted)]">
+            <span className="opacity-60">From: </span>
+            <span className="font-mono">{skill.sourceFolder}</span>
+          </div>
+        )}
+
         {/* Environment toggles */}
         <div className="mt-4 flex flex-wrap gap-2">
           {SUPPORTED_ENVS.map((env) => {
