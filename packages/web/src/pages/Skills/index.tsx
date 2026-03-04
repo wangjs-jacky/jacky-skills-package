@@ -111,7 +111,7 @@ export default function SkillsPage() {
           <span className="text-sm font-mono text-[var(--color-text-muted)]">
             <span className="text-[var(--color-primary)]">
               {skills.filter(s => s.installedEnvironments?.length).length}
-            </span> active
+            </span> installed
           </span>
         </div>
       </div>
