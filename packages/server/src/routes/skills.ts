@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import type { ApiResponse, SkillInfo } from '../types.js'
+import type { ApiResponse, SkillInfo, ConfigInfo } from '../types.js'
 import { existsSync, readdirSync, readFileSync, unlinkSync, lstatSync, symlinkSync, cpSync, rmSync, mkdirSync } from 'fs'
 import { join, basename, resolve } from 'path'
 import { homedir } from 'os'
@@ -15,7 +15,7 @@ import {
   listSourceFolders,
   removeSourceFolder,
 } from '../../../../src/lib/registry.js'
-import { getLinkedDir, getGlobalSkillsDir, ensureGlobalDir } from '../../../../src/lib/paths.js'
+import { getLinkedDir, getGlobalSkillsDir, ensureGlobalDir, getConfigPath } from '../../../../src/lib/paths.js'
 import { getGlobalEnvPath, getFirstExistingProjectPath, type Environment } from '../../../../src/lib/environments.js'
 
 // 扩展路径中的 ~ 为用户主目录
@@ -418,8 +418,22 @@ export function createSkillsRouter(): Router {
         rmSync(targetPath, { recursive: true, force: true })
       }
 
-      // 复制 skill 到目标环境
-      cpSync(skill.path, targetPath, { recursive: true })
+      // 读取配置获取安装方式
+      const configPath = getConfigPath()
+      let config: ConfigInfo = {}
+      if (existsSync(configPath)) {
+        config = JSON.parse(readFileSync(configPath, 'utf-8'))
+      }
+      const installMethod = config.installMethod || 'copy'
+
+      // 根据配置选择安装方式
+      if (installMethod === 'symlink') {
+        // 创建符号链接
+        symlinkSync(skill.path, targetPath, 'junction')
+      } else {
+        // 复制 skill 到目标环境
+        cpSync(skill.path, targetPath, { recursive: true })
+      }
 
       // 更新注册表
       const existingEnvs = skill.installedEnvironments || []
@@ -430,7 +444,7 @@ export function createSkillsRouter(): Router {
 
       res.json({
         success: true,
-        data: { name: skillName, env, path: targetPath },
+        data: { name: skillName, env, path: targetPath, method: installMethod },
         error: null,
       })
     } catch (err) {

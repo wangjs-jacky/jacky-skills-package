@@ -52,6 +52,7 @@ export interface EnvironmentStatus {
 export interface ConfigInfo {
   defaultEnvironments?: string[]
   autoConfirm?: boolean
+  installMethod?: 'copy' | 'symlink'
 }
 
 export interface FileInfo {

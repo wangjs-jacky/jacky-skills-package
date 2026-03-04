@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../../stores'
-import { configApi, environmentsApi, type EnvironmentInfo } from '../../api/client'
-import { Settings, Check, Terminal, Cpu } from 'lucide-react'
+import { configApi, environmentsApi, type EnvironmentInfo, type ConfigInfo } from '../../api/client'
+import { Settings, Check, Terminal, Cpu, Copy, Link } from 'lucide-react'
 
 export default function SettingsPage() {
   const { config, setConfig, showToast } = useStore()
   const [environments, setEnvironments] = useState<EnvironmentInfo[]>([])
   const [selectedEnvs, setSelectedEnvs] = useState<string[]>([])
+  const [installMethod, setInstallMethod] = useState<'copy' | 'symlink'>('copy')
 
   useEffect(() => {
     loadConfig()
@@ -19,6 +20,7 @@ export default function SettingsPage() {
       if (response.success) {
         setConfig(response.data)
         setSelectedEnvs(response.data.defaultEnvironments || [])
+        setInstallMethod(response.data.installMethod || 'copy')
       }
     } catch (err) {
       showToast('Failed to load config', 'error')
@@ -41,6 +43,7 @@ export default function SettingsPage() {
       const response = await configApi.update({
         ...config,
         defaultEnvironments: selectedEnvs,
+        installMethod,
       })
       if (response.success) {
         setConfig(response.data)
@@ -118,6 +121,73 @@ export default function SettingsPage() {
               </button>
             )
           })}
+        </div>
+      </div>
+
+      {/* Install Method Card */}
+      <div className="glass-card rounded-xl p-6 mb-6 noise-overlay">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-blue-dim)] border border-[var(--color-blue)]/30 flex items-center justify-center">
+            <Copy size={16} className="text-[var(--color-blue)]" />
+          </div>
+          <h3 className="font-mono font-semibold text-[var(--color-text)]">
+            Install Method
+          </h3>
+        </div>
+        <p className="text-sm text-[var(--color-text-muted)] mb-6 pl-11">
+          Choose how skills are installed to environments.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* Copy 选项 */}
+          <button
+            onClick={() => setInstallMethod('copy')}
+            className={`
+              relative group flex flex-col items-start gap-2 px-4 py-4 rounded-xl
+              border transition-all duration-300 text-left
+              font-mono text-sm
+              ${installMethod === 'copy'
+                ? 'bg-[var(--color-primary-dim)] border-[var(--color-primary)]/40 text-[var(--color-primary)]'
+                : 'bg-white/[0.02] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-white/[0.04] hover:text-[var(--color-text)]'
+              }
+            `}
+          >
+            <div className="flex items-center gap-3 w-full">
+              <Copy size={18} />
+              <span className="font-medium">Copy</span>
+              {installMethod === 'copy' && (
+                <div className="ml-auto w-5 h-5 rounded-full bg-[var(--color-primary)] flex items-center justify-center">
+                  <Check size={12} className="text-black" />
+                </div>
+              )}
+            </div>
+            <span className="text-xs opacity-70">Creates independent copy</span>
+          </button>
+
+          {/* Symlink 选项 */}
+          <button
+            onClick={() => setInstallMethod('symlink')}
+            className={`
+              relative group flex flex-col items-start gap-2 px-4 py-4 rounded-xl
+              border transition-all duration-300 text-left
+              font-mono text-sm
+              ${installMethod === 'symlink'
+                ? 'bg-[var(--color-primary-dim)] border-[var(--color-primary)]/40 text-[var(--color-primary)]'
+                : 'bg-white/[0.02] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-white/[0.04] hover:text-[var(--color-text)]'
+              }
+            `}
+          >
+            <div className="flex items-center gap-3 w-full">
+              <Link size={18} />
+              <span className="font-medium">Symlink</span>
+              {installMethod === 'symlink' && (
+                <div className="ml-auto w-5 h-5 rounded-full bg-[var(--color-primary)] flex items-center justify-center">
+                  <Check size={12} className="text-black" />
+                </div>
+              )}
+            </div>
+            <span className="text-xs opacity-70">Link to original (updates reflect)</span>
+          </button>
         </div>
       </div>
 

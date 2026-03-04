@@ -27,4 +27,5 @@ export interface EnvironmentInfo {
 export interface ConfigInfo {
   defaultEnvironments?: string[]
   autoConfirm?: boolean
+  installMethod?: 'copy' | 'symlink'
 }
