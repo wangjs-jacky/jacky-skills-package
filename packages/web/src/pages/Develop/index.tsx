@@ -129,7 +129,7 @@ export default function DevelopPage() {
           </div>
 
           {/* Source Folders Card */}
-          <div className="glass-card rounded-xl p-6">
+          <div className="glass-card rounded-xl p-6 noise-overlay">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-[var(--color-amber-dim)] border border-[var(--color-amber)]/30 flex items-center justify-center">
