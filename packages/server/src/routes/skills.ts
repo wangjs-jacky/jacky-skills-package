@@ -266,6 +266,68 @@ export function createSkillsRouter(): Router {
     }
   })
 
+  // POST /api/skills/export - 导出 skills
+  router.post('/export', (req, res) => {
+    try {
+      const { skillNames, targetPath } = req.body
+
+      if (!skillNames || !Array.isArray(skillNames) || skillNames.length === 0) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          error: 'skillNames array is required',
+        })
+      }
+
+      if (!targetPath) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          error: 'targetPath is required',
+        })
+      }
+
+      // 确保目标目录存在
+      mkdirSync(targetPath, { recursive: true })
+
+      const exported: string[] = []
+      const errors: string[] = []
+
+      for (const skillName of skillNames) {
+        const skill = getSkill(skillName)
+        if (!skill) {
+          errors.push(`Skill "${skillName}" not found`)
+          continue
+        }
+
+        try {
+          const destPath = join(targetPath, skillName)
+          // 如果目标已存在，先删除
+          if (existsSync(destPath)) {
+            rmSync(destPath, { recursive: true, force: true })
+          }
+          // 复制实际文件
+          cpSync(skill.path, destPath, { recursive: true })
+          exported.push(skillName)
+        } catch (err) {
+          errors.push(`Failed to export "${skillName}": ${(err as Error).message}`)
+        }
+      }
+
+      res.json({
+        success: errors.length === 0,
+        data: { exported, errors, targetPath },
+        error: errors.length > 0 ? errors.join('; ') : null,
+      })
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: (err as Error).message,
+      })
+    }
+  })
+
   // GET /api/skills/:name/files/* - 获取文件内容
   router.get('/:name/files/*', (req, res) => {
     try {
