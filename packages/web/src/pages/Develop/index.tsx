@@ -157,16 +157,16 @@ export default function DevelopPage() {
                                bg-white/[0.02] border border-[var(--color-border)]
                                hover:bg-white/[0.04] transition-all duration-300"
                   >
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-start justify-between gap-3">
                       <p
-                        className="flex-1 font-mono text-sm text-[var(--color-text)] truncate cursor-pointer"
+                        className="flex-1 font-mono text-sm text-[var(--color-text)] break-all cursor-pointer"
                         onClick={() => setSkillPath(folder.path)}
                       >
                         {folder.path}
                       </p>
                       <button
                         onClick={() => handleRemoveFolder(folder.path)}
-                        className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-red)] hover:bg-[var(--color-red-dim)] transition-all opacity-0 group-hover:opacity-100"
+                        className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-red)] hover:bg-[var(--color-red-dim)] transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
                         title="Remove"
                       >
                         <Trash2 size={14} />
