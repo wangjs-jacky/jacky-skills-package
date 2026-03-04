@@ -36,6 +36,27 @@ export default function SkillsPage() {
     }
   }
 
+  async function handleToggleEnv(name: string, env: string, enable: boolean) {
+    try {
+      if (enable) {
+        const response = await skillsApi.install(name, env, true)
+        if (response.success) {
+          showToast(`Installed ${name} to ${env}`, 'success')
+          loadSkills()
+        }
+      } else {
+        const response = await skillsApi.uninstall(name, env, true)
+        if (response.success) {
+          showToast(`Removed ${name} from ${env}`, 'success')
+          loadSkills()
+        }
+      }
+    } catch (err) {
+      const action = enable ? 'install to' : 'remove from'
+      showToast(`Failed to ${action} ${env}`, 'error')
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -52,7 +73,7 @@ export default function SkillsPage() {
           Manage your linked and installed skills
         </p>
       </div>
-      <SkillList skills={skills} onUnlink={handleUnlink} />
+      <SkillList skills={skills} onUnlink={handleUnlink} onToggleEnv={handleToggleEnv} />
     </div>
   )
 }

@@ -61,6 +61,10 @@ export const skillsApi = {
     api.get(`skills/${name}/files/${path}`).json<ApiResponse<{ path: string; content: string }>>(),
   link: (skillPath: string) =>
     api.post('skills/link', { json: { path: skillPath } }).json<ApiResponse<{ name: string; path: string }>>(),
+  install: (name: string, env: string, global: boolean = true) =>
+    api.post(`skills/${name}/install`, { json: { env, global } }).json<ApiResponse<{ name: string; env: string; path: string }>>(),
+  uninstall: (name: string, env: string, global: boolean = true) =>
+    api.post(`skills/${name}/uninstall`, { json: { env, global } }).json<ApiResponse<{ name: string; env: string; removed: boolean }>>(),
 }
 
 // Environments API

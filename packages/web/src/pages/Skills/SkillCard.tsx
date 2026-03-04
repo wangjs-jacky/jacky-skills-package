@@ -4,9 +4,18 @@ import type { SkillInfo } from '../../api/client'
 interface SkillCardProps {
   skill: SkillInfo
   onUnlink: (name: string) => void
+  onToggleEnv: (name: string, env: string, enable: boolean) => void
 }
 
-export default function SkillCard({ skill, onUnlink }: SkillCardProps) {
+// 支持的环境列表
+const SUPPORTED_ENVS = [
+  { id: 'claude-code', label: 'Claude Code' },
+  { id: 'cursor', label: 'Cursor' },
+]
+
+export default function SkillCard({ skill, onUnlink, onToggleEnv }: SkillCardProps) {
+  const installedEnvs = skill.installedEnvironments || []
+
   return (
     <div className="border border-[var(--color-border)] rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
@@ -34,18 +43,26 @@ export default function SkillCard({ skill, onUnlink }: SkillCardProps) {
       <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 truncate">
         {skill.path}
       </div>
-      {skill.installedEnvironments && skill.installedEnvironments.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {skill.installedEnvironments.map((env) => (
-            <span
-              key={env}
-              className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs"
+
+      {/* 环境切换按钮 */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {SUPPORTED_ENVS.map((env) => {
+          const isInstalled = installedEnvs.includes(env.id)
+          return (
+            <button
+              key={env.id}
+              onClick={() => onToggleEnv(skill.name, env.id, !isInstalled)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                isInstalled
+                  ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
             >
-              {env}
-            </span>
-          ))}
-        </div>
-      )}
+              {env.label}: {isInstalled ? 'ON' : 'OFF'}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

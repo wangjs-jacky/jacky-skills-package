@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import type { ApiResponse, SkillInfo } from '../types.js'
-import { existsSync, readdirSync, readFileSync, unlinkSync, lstatSync, symlinkSync } from 'fs'
+import { existsSync, readdirSync, readFileSync, unlinkSync, lstatSync, symlinkSync, cpSync, rmSync, mkdirSync } from 'fs'
 import { join, basename, resolve } from 'path'
 
 // 导入 CLI 核心模块（从根目录 src/lib）
@@ -9,8 +9,10 @@ import {
   getSkill,
   unregisterSkill,
   registerSkill,
+  updateSkillEnvironments,
 } from '../../../../src/lib/registry.js'
-import { getLinkedDir } from '../../../../src/lib/paths.js'
+import { getLinkedDir, getGlobalSkillsDir, ensureGlobalDir } from '../../../../src/lib/paths.js'
+import { getGlobalEnvPath, getFirstExistingProjectPath, type Environment } from '../../../../src/lib/environments.js'
 
 export function createSkillsRouter(): Router {
   const router = Router()
@@ -202,6 +204,131 @@ export function createSkillsRouter(): Router {
 
       const content = readFileSync(fullPath, 'utf-8')
       res.json({ success: true, data: { path: filePath, content }, error: null })
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: (err as Error).message,
+      })
+    }
+  })
+
+  // POST /api/skills/:name/install - 安装 skill 到指定环境
+  router.post('/:name/install', (req, res) => {
+    try {
+      const skillName = req.params.name
+      const { env, global = true } = req.body
+
+      if (!env) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          error: 'Environment is required',
+        })
+      }
+
+      const skill = getSkill(skillName)
+      if (!skill) {
+        return res.status(404).json({
+          success: false,
+          data: null,
+          error: `Skill "${skillName}" not found`,
+        })
+      }
+
+      ensureGlobalDir()
+      const isGlobal = global
+      const projectDir = process.cwd()
+
+      // 获取目标环境路径
+      const envPath = isGlobal
+        ? getGlobalEnvPath(env as Environment)
+        : getFirstExistingProjectPath(env as Environment, projectDir) || resolve(projectDir, '.cursor/skills')
+
+      const targetPath = resolve(envPath, skillName)
+
+      // 确保目标目录存在
+      if (!existsSync(envPath)) {
+        mkdirSync(envPath, { recursive: true })
+      }
+
+      // 如果目标已存在，先删除
+      if (existsSync(targetPath) || lstatSync(targetPath, { throwIfNoEntry: false })) {
+        rmSync(targetPath, { recursive: true, force: true })
+      }
+
+      // 复制 skill 到目标环境
+      cpSync(skill.path, targetPath, { recursive: true })
+
+      // 更新注册表
+      const existingEnvs = skill.installedEnvironments || []
+      if (!existingEnvs.includes(env)) {
+        existingEnvs.push(env)
+      }
+      updateSkillEnvironments(skillName, existingEnvs)
+
+      res.json({
+        success: true,
+        data: { name: skillName, env, path: targetPath },
+        error: null,
+      })
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: (err as Error).message,
+      })
+    }
+  })
+
+  // POST /api/skills/:name/uninstall - 从指定环境卸载 skill
+  router.post('/:name/uninstall', (req, res) => {
+    try {
+      const skillName = req.params.name
+      const { env, global = true } = req.body
+
+      if (!env) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          error: 'Environment is required',
+        })
+      }
+
+      const skill = getSkill(skillName)
+      if (!skill) {
+        return res.status(404).json({
+          success: false,
+          data: null,
+          error: `Skill "${skillName}" not found`,
+        })
+      }
+
+      const isGlobal = global
+      const projectDir = process.cwd()
+
+      // 获取目标环境路径
+      const envPath = isGlobal
+        ? getGlobalEnvPath(env as Environment)
+        : getFirstExistingProjectPath(env as Environment, projectDir) || resolve(projectDir, '.cursor/skills')
+
+      const targetPath = resolve(envPath, skillName)
+
+      // 删除目标
+      if (existsSync(targetPath)) {
+        rmSync(targetPath, { recursive: true, force: true })
+      }
+
+      // 更新注册表
+      const existingEnvs = skill.installedEnvironments || []
+      const updatedEnvs = existingEnvs.filter((e) => e !== env)
+      updateSkillEnvironments(skillName, updatedEnvs)
+
+      res.json({
+        success: true,
+        data: { name: skillName, env, removed: true },
+        error: null,
+      })
     } catch (err) {
       res.status(500).json({
         success: false,

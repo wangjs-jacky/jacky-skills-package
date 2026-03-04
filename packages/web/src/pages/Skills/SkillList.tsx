@@ -6,9 +6,10 @@ import type { SkillInfo } from '../../api/client'
 interface SkillListProps {
   skills: SkillInfo[]
   onUnlink: (name: string) => void
+  onToggleEnv: (name: string, env: string, enable: boolean) => void
 }
 
-export default function SkillList({ skills, onUnlink }: SkillListProps) {
+export default function SkillList({ skills, onUnlink, onToggleEnv }: SkillListProps) {
   const [search, setSearch] = useState('')
 
   const filteredSkills = skills.filter((skill) =>
@@ -34,7 +35,7 @@ export default function SkillList({ skills, onUnlink }: SkillListProps) {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredSkills.map((skill) => (
-          <SkillCard key={skill.name} skill={skill} onUnlink={onUnlink} />
+          <SkillCard key={skill.name} skill={skill} onUnlink={onUnlink} onToggleEnv={onToggleEnv} />
         ))}
       </div>
       {filteredSkills.length === 0 && (
