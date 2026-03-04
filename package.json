@@ -15,7 +15,13 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "start": "node ./dist/index.js"
+    "start": "node ./dist/index.js",
+    "dev:all": "pnpm run --parallel dev:server:dev & pnpm --filter @j-skills/web dev",
+    "dev:server": "pnpm --filter @j-skills/server dev",
+    "dev:web": "pnpm --filter @j-skills/web dev",
+    "build:server": "pnpm --filter @j-skills/server build",
+    "build:web": "pnpm --filter @j-skills/web build",
+    "build:all": "pnpm build && pnpm build:server && pnpm build:web"
   },
   "keywords": [
     "cli",
