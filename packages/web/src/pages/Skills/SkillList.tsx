@@ -7,9 +7,10 @@ interface SkillListProps {
   skills: SkillInfo[]
   onUnlink: (name: string) => void
   onToggleEnv: (name: string, env: string, enable: boolean) => void
+  onExport: (name: string) => void
 }
 
-export default function SkillList({ skills, onUnlink, onToggleEnv }: SkillListProps) {
+export default function SkillList({ skills, onUnlink, onToggleEnv, onExport }: SkillListProps) {
   const [search, setSearch] = useState('')
 
   const filteredSkills = skills.filter((skill) =>
@@ -49,7 +50,7 @@ export default function SkillList({ skills, onUnlink, onToggleEnv }: SkillListPr
             className="animate-fade-in"
             style={{ animationDelay: `${Math.min(index * 0.05, 0.5)}s` }}
           >
-            <SkillCard skill={skill} onUnlink={onUnlink} onToggleEnv={onToggleEnv} />
+            <SkillCard skill={skill} onUnlink={onUnlink} onToggleEnv={onToggleEnv} onExport={onExport} />
           </div>
         ))}
       </div>

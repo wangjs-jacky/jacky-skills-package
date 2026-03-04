@@ -63,6 +63,22 @@ export default function SkillsPage() {
     }
   }
 
+  async function handleExport(name: string) {
+    // 导出到 ~/Downloads/j-skills-export/
+    const defaultPath = `${process.env.HOME || '~'}/Downloads/j-skills-export`
+
+    try {
+      const response = await skillsApi.export([name], defaultPath)
+      if (response.success) {
+        showToast(`Exported ${name} to ${defaultPath}`, 'success')
+      } else if (response.data?.errors?.length) {
+        showToast(response.data.errors[0], 'error')
+      }
+    } catch (err) {
+      showToast('Failed to export skill', 'error')
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
@@ -117,7 +133,7 @@ export default function SkillsPage() {
       </div>
 
       {/* Skills grid */}
-      <SkillList skills={skills} onUnlink={handleUnlink} onToggleEnv={handleToggleEnv} />
+      <SkillList skills={skills} onUnlink={handleUnlink} onToggleEnv={handleToggleEnv} onExport={handleExport} />
     </div>
   )
 }

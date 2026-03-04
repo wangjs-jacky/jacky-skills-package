@@ -1,10 +1,11 @@
-import { Package, Trash2, Terminal, MousePointer2 } from 'lucide-react'
+import { Package, Trash2, Terminal, MousePointer2, Download } from 'lucide-react'
 import type { SkillInfo } from '../../api/client'
 
 interface SkillCardProps {
   skill: SkillInfo
   onUnlink: (name: string) => void
   onToggleEnv: (name: string, env: string, enable: boolean) => void
+  onExport: (name: string) => void
 }
 
 // 支持的环境列表
@@ -24,7 +25,7 @@ function getSkillColor(name: string): { bg: string; border: string; text: string
   return colors[index]
 }
 
-export default function SkillCard({ skill, onUnlink, onToggleEnv }: SkillCardProps) {
+export default function SkillCard({ skill, onUnlink, onToggleEnv, onExport }: SkillCardProps) {
   const installedEnvs = skill.installedEnvironments || []
   const colorScheme = getSkillColor(skill.name)
 
@@ -75,13 +76,22 @@ export default function SkillCard({ skill, onUnlink, onToggleEnv }: SkillCardPro
           </div>
 
           {/* Actions */}
-          <button
-            onClick={() => onUnlink(skill.name)}
-            className="flex-shrink-0 p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-red)] hover:bg-[var(--color-red-dim)] transition-all duration-200 opacity-0 group-hover:opacity-100"
-            title="Unlink"
-          >
-            <Trash2 size={16} />
-          </button>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => onExport(skill.name)}
+              className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-blue)] hover:bg-[var(--color-blue-dim)] transition-all duration-200"
+              title="Export"
+            >
+              <Download size={16} />
+            </button>
+            <button
+              onClick={() => onUnlink(skill.name)}
+              className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-red)] hover:bg-[var(--color-red-dim)] transition-all duration-200"
+              title="Unlink"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Path */}
