@@ -261,3 +261,30 @@ MIT
 - [Vercel Skills 规范](https://github.com/vercel-labs/skills)
 - [Claude Code 文档](https://docs.anthropic.com)
 - [Agent Skills Directory](https://skills.sh)
+
+## Web GUI
+
+j-skills 提供了一个本地 Web GUI 界面，方便可视化管理 Skills。
+
+### 启动 GUI
+
+```bash
+# 同时启动前后端
+pnpm dev:server &  # 后端 :3001
+pnpm dev:web       # 前端 :5173
+
+# 或在项目根目录运行
+pnpm dev:all
+```
+
+### GUI 功能
+
+- **Skills 管理** - 查看已链接/安装的 Skills，支持搜索和卸载
+- **Develop** - 链接本地 Skill 目录，预览 SKILL.md 内容
+- **Settings** - 配置默认安装环境
+
+### 技术架构
+
+- **后端**: Express + TypeScript (端口 3001)
+- **前端**: React + Vite + Tailwind CSS + Zustand (端口 5173)
+- **通信**: 前端通过 Vite 代理访问后端 API
