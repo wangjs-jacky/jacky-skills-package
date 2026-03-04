@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../../stores'
 import { configApi, environmentsApi, type EnvironmentInfo } from '../../api/client'
-import { Settings, Check, Terminal, Cpu, Folder } from 'lucide-react'
+import { Settings, Check, Terminal, Cpu } from 'lucide-react'
 
 export default function SettingsPage() {
   const { config, setConfig, showToast } = useStore()
@@ -120,25 +120,6 @@ export default function SettingsPage() {
           })}
         </div>
       </div>
-
-      {/* Config Preview */}
-      {config && (
-        <div className="glass-card rounded-xl p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-[var(--color-blue-dim)] border border-[var(--color-blue)]/30 flex items-center justify-center">
-              <Folder size={16} className="text-[var(--color-blue)]" />
-            </div>
-            <h3 className="font-mono font-semibold text-[var(--color-text)]">
-              Configuration
-            </h3>
-          </div>
-          <div className="bg-black/30 rounded-lg p-4 border border-[var(--color-border)]">
-            <pre className="text-xs font-mono text-[var(--color-text-muted)] overflow-auto">
-              {JSON.stringify(config, null, 2)}
-            </pre>
-          </div>
-        </div>
-      )}
 
       {/* Save Button */}
       <button
