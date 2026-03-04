@@ -2,11 +2,13 @@ mod error;
 mod models;
 mod utils;
 mod services;
+mod commands;
 
 pub use error::{AppError, Result};
 pub use models::{SkillInfo, SkillSource, SourceFolder, AppConfig, InstallMethod};
 pub use utils::*;
 pub use services::{ConfigService, Registry};
+pub use commands::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
