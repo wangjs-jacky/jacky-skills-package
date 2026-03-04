@@ -6,12 +6,23 @@ import { join } from 'path'
 import { getGlobalDir } from './paths.js'
 
 /**
+ * 源文件夹记录
+ */
+export interface SourceFolder {
+  path: string              // 文件夹路径
+  addedAt: string          // 添加时间
+  lastScanned: string      // 最后扫描时间
+  skillNames: string[]     // 包含的 skill 名称列表
+}
+
+/**
  * 注册表中的 Skill 条目
  */
 export interface RegistrySkill {
   name: string
   path: string
   source: 'linked' | 'global' | 'marketplace'
+  sourceFolder?: string      // 来源文件夹路径
   installedEnvironments?: string[]
   installedAt?: string
   version?: string
@@ -23,6 +34,7 @@ export interface RegistrySkill {
 export interface Registry {
   version: string
   skills: Record<string, RegistrySkill>
+  sourceFolders: SourceFolder[]  // 源文件夹列表
 }
 
 const REGISTRY_VERSION = '1.0.0'
@@ -44,16 +56,23 @@ export function readRegistry(): Registry {
     return {
       version: REGISTRY_VERSION,
       skills: {},
+      sourceFolders: [],
     }
   }
 
   try {
     const content = readFileSync(filePath, 'utf-8')
-    return JSON.parse(content) as Registry
+    const registry = JSON.parse(content) as Registry
+    // 兼容旧版本数据
+    if (!registry.sourceFolders) {
+      registry.sourceFolders = []
+    }
+    return registry
   } catch {
     return {
       version: REGISTRY_VERSION,
       skills: {},
+      sourceFolders: [],
     }
   }
 }
@@ -142,4 +161,64 @@ export function updateSkillEnvironments(
 export function isSkillRegistered(name: string): boolean {
   const registry = readRegistry()
   return name in registry.skills
+}
+
+// ==================== 源文件夹管理 ====================
+
+/**
+ * 添加源文件夹记录
+ */
+export function addSourceFolder(folder: SourceFolder): void {
+  const registry = readRegistry()
+  const existing = registry.sourceFolders.findIndex(f => f.path === folder.path)
+  if (existing >= 0) {
+    registry.sourceFolders[existing] = folder
+  } else {
+    registry.sourceFolders.push(folder)
+  }
+  writeRegistry(registry)
+}
+
+/**
+ * 获取源文件夹列表
+ */
+export function listSourceFolders(): SourceFolder[] {
+  const registry = readRegistry()
+  return registry.sourceFolders || []
+}
+
+/**
+ * 获取源文件夹
+ */
+export function getSourceFolder(path: string): SourceFolder | undefined {
+  const registry = readRegistry()
+  return registry.sourceFolders.find(f => f.path === path)
+}
+
+/**
+ * 更新源文件夹
+ */
+export function updateSourceFolder(path: string, updates: Partial<SourceFolder>): boolean {
+  const registry = readRegistry()
+  const index = registry.sourceFolders.findIndex(f => f.path === path)
+  if (index >= 0) {
+    registry.sourceFolders[index] = { ...registry.sourceFolders[index], ...updates }
+    writeRegistry(registry)
+    return true
+  }
+  return false
+}
+
+/**
+ * 移除源文件夹记录
+ */
+export function removeSourceFolder(path: string): boolean {
+  const registry = readRegistry()
+  const index = registry.sourceFolders.findIndex(f => f.path === path)
+  if (index >= 0) {
+    registry.sourceFolders.splice(index, 1)
+    writeRegistry(registry)
+    return true
+  }
+  return false
 }
