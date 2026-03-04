@@ -117,7 +117,7 @@ export function createSkillsRouter(): Router {
     }
   })
 
-  // POST /api/skills/link - 链接本地 skill
+  // POST /api/skills/link - 链接本地 skill（支持批量链接目录下所有 skill）
   router.post('/link', (req, res) => {
     try {
       const { path: skillPath } = req.body
@@ -131,43 +131,88 @@ export function createSkillsRouter(): Router {
       }
 
       const resolvedPath = resolve(skillPath)
-      const skillName = basename(resolvedPath)
       const linkedDir = getLinkedDir()
 
-      // 验证目录
-      if (!existsSync(join(resolvedPath, 'SKILL.md'))) {
-        return res.status(400).json({
-          success: false,
-          data: null,
-          error: 'No SKILL.md found in the specified directory',
+      // 如果目录本身包含 SKILL.md，链接单个 skill
+      if (existsSync(join(resolvedPath, 'SKILL.md'))) {
+        const skillName = basename(resolvedPath)
+        const linkPath = join(linkedDir, skillName)
+
+        // 删除已存在的链接
+        try {
+          const stats = lstatSync(linkPath)
+          if (stats.isSymbolicLink() || stats.isFile() || stats.isDirectory()) {
+            unlinkSync(linkPath)
+          }
+        } catch {
+          // 忽略
+        }
+
+        // 创建符号链接
+        symlinkSync(resolvedPath, linkPath, 'junction')
+
+        // 注册到 registry
+        registerSkill({
+          name: skillName,
+          path: resolvedPath,
+          source: 'linked',
+        })
+
+        return res.json({
+          success: true,
+          data: { linked: [skillName], count: 1 },
+          error: null,
         })
       }
 
-      const linkPath = join(linkedDir, skillName)
+      // 批量链接：扫描子目录，找出所有包含 SKILL.md 的目录
+      const linkedSkills: string[] = []
+      const entries = readdirSync(resolvedPath, { withFileTypes: true })
 
-      // 删除已存在的链接
-      try {
-        const stats = lstatSync(linkPath)
-        if (stats.isSymbolicLink() || stats.isFile() || stats.isDirectory()) {
-          unlinkSync(linkPath)
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue
+        if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
+
+        const subDirPath = join(resolvedPath, entry.name)
+        if (!existsSync(join(subDirPath, 'SKILL.md'))) continue
+
+        const skillName = entry.name
+        const linkPath = join(linkedDir, skillName)
+
+        // 删除已存在的链接
+        try {
+          const stats = lstatSync(linkPath)
+          if (stats.isSymbolicLink() || stats.isFile() || stats.isDirectory()) {
+            unlinkSync(linkPath)
+          }
+        } catch {
+          // 忽略
         }
-      } catch {
-        // 忽略
+
+        // 创建符号链接
+        symlinkSync(subDirPath, linkPath, 'junction')
+
+        // 注册到 registry
+        registerSkill({
+          name: skillName,
+          path: subDirPath,
+          source: 'linked',
+        })
+
+        linkedSkills.push(skillName)
       }
 
-      // 创建符号链接
-      symlinkSync(resolvedPath, linkPath, 'junction')
-
-      // 注册到 registry
-      registerSkill({
-        name: skillName,
-        path: resolvedPath,
-        source: 'linked',
-      })
+      if (linkedSkills.length === 0) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          error: 'No skills found (directories with SKILL.md)',
+        })
+      }
 
       res.json({
         success: true,
-        data: { name: skillName, path: resolvedPath },
+        data: { linked: linkedSkills, count: linkedSkills.length },
         error: null,
       })
     } catch (err) {

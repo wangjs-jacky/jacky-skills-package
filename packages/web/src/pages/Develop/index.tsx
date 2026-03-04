@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FolderOpen, Link, FileText, Code2, Sparkles } from 'lucide-react'
+import { FolderOpen, Link, FileText, Code2, Sparkles, FolderSync } from 'lucide-react'
 import { useStore } from '../../stores'
 import { skillsApi } from '../../api/client'
 
@@ -11,18 +11,19 @@ export default function DevelopPage() {
 
   async function handleLink() {
     if (!skillPath.trim()) {
-      showToast('Please enter a skill path', 'error')
+      showToast('Please enter a path', 'error')
       return
     }
 
     try {
       const response = await skillsApi.link(skillPath)
       if (response.success) {
-        showToast(`Linked: ${response.data.name}`, 'success')
+        const { linked, count } = response.data
+        showToast(`Linked ${count} skill${count > 1 ? 's' : ''}: ${linked.join(', ')}`, 'success')
         setSkillPath('')
       }
     } catch (err) {
-      showToast('Failed to link skill', 'error')
+      showToast('Failed to link skills', 'error')
     }
   }
 
@@ -61,21 +62,24 @@ export default function DevelopPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column */}
         <div className="space-y-6">
-          {/* Link New Skill Card */}
+          {/* Batch Link Card */}
           <div className="glass-card rounded-xl p-6 noise-overlay">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-dim)] border border-[var(--color-primary)]/30 flex items-center justify-center">
-                <Link size={16} className="text-[var(--color-primary)]" />
+                <FolderSync size={16} className="text-[var(--color-primary)]" />
               </div>
               <h3 className="font-mono font-semibold text-[var(--color-text)]">
-                Link New Skill
+                Batch Link Skills
               </h3>
             </div>
+            <p className="text-xs text-[var(--color-text-muted)] mb-4 pl-11">
+              Enter a directory path. All subdirectories containing SKILL.md will be linked.
+            </p>
 
             <div className="flex gap-3">
               <input
                 type="text"
-                placeholder="/path/to/skill"
+                placeholder="/path/to/skills/directory"
                 value={skillPath}
                 onChange={(e) => setSkillPath(e.target.value)}
                 className="flex-1 px-4 py-3 rounded-xl bg-black/30 border border-[var(--color-border)]
@@ -90,7 +94,7 @@ export default function DevelopPage() {
                            hover:shadow-[0_0_30px_var(--color-primary-glow)]
                            transition-all duration-300 btn-glow"
               >
-                Link
+                Link All
               </button>
             </div>
           </div>
@@ -116,7 +120,12 @@ export default function DevelopPage() {
                            font-mono text-sm text-left"
               >
                 <Sparkles size={16} className="text-[var(--color-primary)]" />
-                Open jacky-skills directory
+                <div className="flex flex-col">
+                  <span>Link jacky-skills directory</span>
+                  <span className="text-[10px] text-[var(--color-text-muted)]">
+                    /Users/jiashengwang/jacky-github/jacky-skills
+                  </span>
+                </div>
               </button>
             </div>
           </div>
