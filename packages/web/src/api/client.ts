@@ -23,8 +23,16 @@ export interface SkillInfo {
   name: string
   path: string
   source: 'linked' | 'global' | 'marketplace'
+  sourceFolder?: string
   installedEnvironments?: string[]
   installedAt?: string
+}
+
+export interface SourceFolder {
+  path: string
+  addedAt: string
+  lastScanned: string
+  skillNames: string[]
 }
 
 export interface EnvironmentInfo {
@@ -65,6 +73,17 @@ export const skillsApi = {
     api.post(`skills/${name}/install`, { json: { env, global } }).json<ApiResponse<{ name: string; env: string; path: string }>>(),
   uninstall: (name: string, env: string, global: boolean = true) =>
     api.post(`skills/${name}/uninstall`, { json: { env, global } }).json<ApiResponse<{ name: string; env: string; removed: boolean }>>(),
+
+  // 源文件夹管理
+  listSourceFolders: () =>
+    api.get('skills/source-folders').json<ApiResponse<SourceFolder[]>>(),
+
+  removeSourceFolder: (path: string) =>
+    api.delete(`skills/source-folders/${encodeURIComponent(path)}`).json<ApiResponse<{ path: string }>>(),
+
+  // 导出
+  export: (skillNames: string[], targetPath: string) =>
+    api.post('skills/export', { json: { skillNames, targetPath } }).json<ApiResponse<{ exported: string[]; errors: string[]; targetPath: string }>>(),
 }
 
 // Environments API
