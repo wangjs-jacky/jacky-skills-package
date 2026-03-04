@@ -2,6 +2,7 @@ import { Router } from 'express'
 import type { ApiResponse, SkillInfo } from '../types.js'
 import { existsSync, readdirSync, readFileSync, unlinkSync, lstatSync, symlinkSync, cpSync, rmSync, mkdirSync } from 'fs'
 import { join, basename, resolve } from 'path'
+import { homedir } from 'os'
 
 // 导入 CLI 核心模块（从根目录 src/lib）
 import {
@@ -16,6 +17,14 @@ import {
 } from '../../../../src/lib/registry.js'
 import { getLinkedDir, getGlobalSkillsDir, ensureGlobalDir } from '../../../../src/lib/paths.js'
 import { getGlobalEnvPath, getFirstExistingProjectPath, type Environment } from '../../../../src/lib/environments.js'
+
+// 扩展路径中的 ~ 为用户主目录
+function expandPath(path: string): string {
+  if (path.startsWith('~')) {
+    return join(homedir(), path.slice(1))
+  }
+  return path
+}
 
 export function createSkillsRouter(): Router {
   const router = Router()
@@ -287,8 +296,11 @@ export function createSkillsRouter(): Router {
         })
       }
 
+      // 扩展路径中的 ~ 为用户主目录
+      const expandedPath = expandPath(targetPath)
+
       // 确保目标目录存在
-      mkdirSync(targetPath, { recursive: true })
+      mkdirSync(expandedPath, { recursive: true })
 
       const exported: string[] = []
       const errors: string[] = []
@@ -301,7 +313,7 @@ export function createSkillsRouter(): Router {
         }
 
         try {
-          const destPath = join(targetPath, skillName)
+          const destPath = join(expandedPath, skillName)
           // 如果目标已存在，先删除
           if (existsSync(destPath)) {
             rmSync(destPath, { recursive: true, force: true })
@@ -316,7 +328,7 @@ export function createSkillsRouter(): Router {
 
       res.json({
         success: errors.length === 0,
-        data: { exported, errors, targetPath },
+        data: { exported, errors, targetPath: expandedPath },
         error: errors.length > 0 ? errors.join('; ') : null,
       })
     } catch (err) {
