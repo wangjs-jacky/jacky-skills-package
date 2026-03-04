@@ -11,12 +11,43 @@ import {
   registerSkill,
   updateSkillEnvironments,
   addSourceFolder,
+  listSourceFolders,
+  removeSourceFolder,
 } from '../../../../src/lib/registry.js'
 import { getLinkedDir, getGlobalSkillsDir, ensureGlobalDir } from '../../../../src/lib/paths.js'
 import { getGlobalEnvPath, getFirstExistingProjectPath, type Environment } from '../../../../src/lib/environments.js'
 
 export function createSkillsRouter(): Router {
   const router = Router()
+
+  // GET /api/source-folders - 获取源文件夹列表
+  router.get('/source-folders', (_req, res) => {
+    try {
+      const folders = listSourceFolders()
+      res.json({ success: true, data: folders, error: null })
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: (err as Error).message,
+      })
+    }
+  })
+
+  // DELETE /api/source-folders/* - 移除源文件夹记录
+  router.delete('/source-folders/*', (req, res) => {
+    try {
+      const folderPath = decodeURIComponent(req.params[0])
+      const removed = removeSourceFolder(folderPath)
+      res.json({ success: removed, data: { path: folderPath }, error: null })
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        data: null,
+        error: (err as Error).message,
+      })
+    }
+  })
 
   // GET /api/skills - 列出所有 skills
   router.get('/', (_req, res) => {
