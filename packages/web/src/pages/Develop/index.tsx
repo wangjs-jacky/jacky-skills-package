@@ -149,32 +149,44 @@ export default function DevelopPage() {
             </div>
 
             {sourceFolders.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {sourceFolders.map((folder) => (
                   <div
                     key={folder.path}
-                    className="group flex items-center justify-between gap-3 px-4 py-3 rounded-xl
+                    className="group px-4 py-3 rounded-xl
                                bg-white/[0.02] border border-[var(--color-border)]
                                hover:bg-white/[0.04] transition-all duration-300"
                   >
-                    <div
-                      className="flex-1 cursor-pointer"
-                      onClick={() => setSkillPath(folder.path)}
-                    >
-                      <p className="font-mono text-sm text-[var(--color-text)] truncate">
+                    <div className="flex items-center justify-between gap-3">
+                      <p
+                        className="flex-1 font-mono text-sm text-[var(--color-text)] truncate cursor-pointer"
+                        onClick={() => setSkillPath(folder.path)}
+                      >
                         {folder.path}
                       </p>
-                      <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
-                        {folder.skillNames.length} skill{folder.skillNames.length !== 1 ? 's' : ''} • Added {new Date(folder.addedAt).toLocaleDateString()}
-                      </p>
+                      <button
+                        onClick={() => handleRemoveFolder(folder.path)}
+                        className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-red)] hover:bg-[var(--color-red-dim)] transition-all opacity-0 group-hover:opacity-100"
+                        title="Remove"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => handleRemoveFolder(folder.path)}
-                      className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-red)] hover:bg-[var(--color-red-dim)] transition-all opacity-0 group-hover:opacity-100"
-                      title="Remove"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {folder.skillNames.map((name) => (
+                        <span
+                          key={name}
+                          className="px-2 py-0.5 rounded text-[10px] font-mono
+                                     bg-[var(--color-primary-dim)] text-[var(--color-primary)]
+                                     border border-[var(--color-primary)]/20"
+                        >
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-[var(--color-text-muted)] mt-2">
+                      Added {new Date(folder.addedAt).toLocaleDateString()}
+                    </p>
                   </div>
                 ))}
               </div>
