@@ -295,6 +295,32 @@ pnpm dev:web     # 前端 :5173
 - 源文件夹监控
 - 设置管理
 
+## 桌面应用
+
+j-skills 也提供基于 Tauri 的原生桌面应用。
+
+### 安装
+
+从以下平台下载最新版本：
+- [macOS (Apple Silicon)](https://github.com/wangjs-jacky/jacky-skills-package/releases)
+- [macOS (Intel)](https://github.com/wangjs-jacky/jacky-skills-package/releases)
+
+### 从源码构建
+
+```bash
+# 前置要求：Rust 和 Xcode Command Line Tools
+pnpm install
+pnpm build:macos
+```
+
+### 功能特性
+
+- 原生桌面体验
+- 离线支持
+- Rust 后端带来的更好性能
+- 未来：系统托盘集成
+- 未来：文件监控自动同步
+
 ## Skill 格式
 
 在你的 skill 目录中创建 `skill.md` 文件：

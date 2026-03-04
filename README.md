@@ -295,6 +295,32 @@ pnpm dev:web     # Frontend :5173
 - Source folder monitoring
 - Settings management
 
+## Desktop App
+
+j-skills is also available as a native desktop application powered by Tauri.
+
+### Installation
+
+Download the latest release for your platform:
+- [macOS (Apple Silicon)](https://github.com/wangjs-jacky/jacky-skills-package/releases)
+- [macOS (Intel)](https://github.com/wangjs-jacky/jacky-skills-package/releases)
+
+### Build from Source
+
+```bash
+# Prerequisites: Rust and Xcode Command Line Tools
+pnpm install
+pnpm build:macos
+```
+
+### Features
+
+- Native desktop experience
+- Offline support
+- Better performance with Rust backend
+- Future: System tray integration
+- Future: File watcher for automatic skill syncing
+
 ## Skill Format
 
 Create a `skill.md` file in your skill directory:
