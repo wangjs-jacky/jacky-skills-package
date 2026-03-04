@@ -1,70 +1,125 @@
 # j-skills
 
-> CLI tool for managing Agent Skills - link, install, and manage skills across 35+ coding agent environments
+> A unified registry for managing scattered Agent Skills - link once, install everywhere
 
 [中文文档](./README_CN.md)
 
-j-skills is a command-line tool for managing Agent Skills, supporting 35+ mainstream AI coding assistants including Claude Code, Cursor, OpenCode, and more. It allows you to easily link, install, and manage skills across multiple environments.
+## The Problem
 
-## Features
+If you develop Agent Skills, you've probably faced these issues:
 
-- **Multi-Environment Support** - Supports 35+ mainstream AI coding assistants
-- **Flexible Installation** - Supports both project-level and global installation
-- **Symlink Management** - Uses symbolic links for hot-reload during local development
-- **Unified Management** - Install to multiple environments with a single command
-- **Interactive CLI** - Friendly command-line interface with interactive prompts
-- **Web GUI** - Visual management interface for easier skill management
+- **Scattered Skills**: Your skills are spread across multiple projects
+- **Manual Copying**: Installing to different agents requires copying files manually
+- **Update Hell**: Updating a skill means re-copying to every environment
+- **No Central View**: Hard to see what skills you have and where they're installed
 
-## Supported Agents
+## The Solution
 
-j-skills supports the following AI coding assistants (following the [Vercel Skills Specification](https://github.com/vercel-labs/skills#available-agents)):
+j-skills solves this with a **two-step workflow**:
 
-| Agent | Project Path | Global Path |
-|-------|---------|----------|
-| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
-| Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
-| OpenCode | `.agents/skills/` | `~/.config/opencode/skills/` |
-| Cline | `.cline/skills/` | `~/.cline/skills/` |
-| Continue | `.continue/skills/` | `~/.continue/skills/` |
-| Codex | `.agents/skills/` | `~/.codex/skills/` |
-| GitHub Copilot | `.agents/skills/` | `~/.copilot/skills/` |
-| Augment | `.augment/skills/` | `~/.augment/skills/` |
-| Roo Code | `.roo/skills/` | `~/.roo/skills/` |
-| Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
-| ...and 25+ more | | |
+```
+┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
+│   Your Skills   │      │  j-skills       │      │  35+ Agents     │
+│   (scattered)   │ ───► │  Registry       │ ───► │  (everywhere)   │
+│                 │ link │  (unified)      │ inst │                 │
+└─────────────────┘      └─────────────────┘      └─────────────────┘
+```
 
-<details>
-<summary>View Full List</summary>
+1. **`j-skills link`** - Register local skills to a central registry
+2. **`j-skills install`** - Distribute to any of 35+ agent environments
 
-- Amp / Kimi CLI / Replit - `.agents/skills/` / `~/.config/agents/skills/`
-- Antigravity - `.agent/skills/` / `~/.gemini/antigravity/skills/`
-- OpenClaw - `skills/` / `~/.moltbot/skills/`
-- CodeBuddy - `.codebuddy/skills/` / `~/.codebuddy/skills/`
-- Command Code - `.commandcode/skills/` / `~/.commandcode/skills/`
-- Crush - `.crush/skills/` / `~/.config/crush/skills/`
-- Droid - `.factory/skills/` / `~/.factory/skills/`
-- Gemini CLI - `.agents/skills/` / `~/.gemini/skills/`
-- Goose - `.goose/skills/` / `~/.config/goose/skills/`
-- Junie - `.junie/skills/` / `~/.junie/skills/`
-- iFlow CLI - `.iflow/skills/` / `~/.iflow/skills/`
-- Kilo Code - `.kilocode/skills/` / `~/.kilocode/skills/`
-- Kiro CLI - `.kiro/skills/` / `~/.kiro/skills/`
-- Kode - `.kode/skills/` / `~/.kode/skills/`
-- MCPJam - `.mcpjam/skills/` / `~/.mcpjam/skills/`
-- Mistral Vibe - `.vibe/skills/` / `~/.vibe/skills/`
-- Mux - `.mux/skills/` / `~/.mux/skills/`
-- OpenHands - `.openhands/skills/` / `~/.openhands/skills/`
-- Pi - `.pi/skills/` / `~/.pi/agent/skills/`
-- Qoder - `.qoder/skills/` / `~/.qoder/skills/`
-- Qwen Code - `.qwen/skills/` / `~/.qwen/skills/`
-- Trae - `.trae/skills/` / `~/.trae/skills/`
-- Trae CN - `.trae/skills/` / `~/.trae-cn/skills/`
-- Zencoder - `.zencoder/skills/` / `~/.zencoder/skills/`
-- Neovate - `.neovate/skills/` / `~/.neovate/skills/`
-- Pochi - `.pochi/skills/` / `~/.pochi/skills/`
-- AdaL - `.adal/skills/` / `~/.adal/skills/`
+## Architecture
 
-</details>
+```mermaid
+graph TB
+    subgraph "Your Local Skills"
+        S1[skill-a/]
+        S2[skill-b/]
+        S3[skill-c/]
+    end
+
+    subgraph "j-skills Registry"
+        R[~/.j-skills/linked/]
+    end
+
+    subgraph "Project Level"
+        P1[.claude/skills/]
+        P2[.cursor/skills/]
+        P3[.cline/skills/]
+    end
+
+    subgraph "Global Level"
+        G1[~/.claude/skills/]
+        G2[~/.cursor/skills/]
+        G3[~/.cline/skills/]
+    end
+
+    S1 -->|"j-skills link"| R
+    S2 -->|"j-skills link"| R
+    S3 -->|"j-skills link"| R
+
+    R -->|"j-skills install (symlink)"| P1
+    R -->|"j-skills install (symlink)"| P2
+    R -->|"j-skills install --global"| G1
+    R -->|"j-skills install --global"| G2
+```
+
+## How It Works
+
+### Step 1: Link Your Skills
+
+Register your local skill directories to the j-skills registry:
+
+```bash
+# Navigate to your skill directory
+cd ~/projects/my-awesome-skill
+
+# Link it to the registry
+j-skills link
+
+# Now it's in the registry!
+j-skills link --list
+```
+
+**What happens**: A symlink is created in `~/.j-skills/linked/<skill-name>` pointing to your original skill directory.
+
+### Step 2: Install to Agents
+
+Install registered skills to any supported agent environment:
+
+```bash
+# Install to current project
+j-skills install my-awesome-skill
+
+# Install globally (available in all projects)
+j-skills install my-awesome-skill --global
+
+# Install to specific environments
+j-skills install my-awesome-skill --env claude-code,cursor,windsurf
+```
+
+**What happens**: Symlinks are created in the target agent's skills directory, pointing to your original skill.
+
+### Step 3: Develop with Hot-Reload
+
+Since everything uses symlinks, your changes are instantly available everywhere:
+
+```bash
+# Edit your skill
+vim ~/projects/my-awesome-skill/skill.md
+
+# Changes are immediately visible in:
+# - .claude/skills/my-awesome-skill/
+# - .cursor/skills/my-awesome-skill/
+# - All other installed locations!
+```
+
+## Why Symlinks?
+
+| Approach | Disk Space | Updates | Management |
+|----------|------------|---------|------------|
+| Copy files | ❌ Duplicates | ❌ Manual | ❌ Scattered |
+| Symlinks | ✅ Zero copy | ✅ Instant | ✅ Centralized |
 
 ## Installation
 
@@ -78,45 +133,42 @@ npx j-skills <command>
 
 ## Commands
 
-### link - Link local skill
-
-Link a local skill directory to the global registry using symbolic links for hot-reload.
+### `link` - Register Skills
 
 ```bash
 # Link current directory (must contain skill.md)
 j-skills link
 
-# Link specified directory
+# Link specific directory
 j-skills link /path/to/skill
 
-# List linked skills
+# List all linked skills
 j-skills link --list
 
-# Unlink
+# Unlink a skill
 j-skills link --unlink <skill-name>
 ```
 
-### install - Install skill
-
-Install a skill to specified environment's project or global directory.
+### `install` - Distribute Skills
 
 ```bash
-# Interactive installation
+# Interactive installation (select environments)
 j-skills install <skill-name>
 
-# Global installation
+# Install to current project
+j-skills install <skill-name>
+
+# Install globally
 j-skills install <skill-name> --global
 
-# Specify environments
+# Install to specific environments
 j-skills install <skill-name> --env claude-code,cursor
 
 # Verbose output
 j-skills install <skill-name> --verbose
 ```
 
-### uninstall - Uninstall skill
-
-Remove a skill from installed environments.
+### `uninstall` - Remove Skills
 
 ```bash
 # Interactive uninstallation
@@ -129,18 +181,16 @@ j-skills uninstall <skill-name> --global
 j-skills uninstall <skill-name> --yes
 ```
 
-### list - List skills
-
-View installed skills.
+### `list` - View Skills
 
 ```bash
-# List project-level skills (default)
+# List project-level skills
 j-skills list
 
 # List global skills
 j-skills list --global
 
-# List all skills (project + global)
+# List all skills
 j-skills list --all
 
 # Search skills
@@ -150,93 +200,110 @@ j-skills list --search <keyword>
 j-skills list --json
 ```
 
-### config - Configuration management
-
-Manage global configuration.
+### `config` - Manage Settings
 
 ```bash
 # View configuration
 j-skills config
 
-# Set configuration
-j-skills config set <key> <value>
+# Set default environments
+j-skills config set defaultEnvironments '["claude-code","cursor"]'
 
-# Delete configuration
-j-skills config delete <key>
+# Set auto-confirm
+j-skills config set autoConfirm true
 ```
 
-## Workflow
+## Supported Agents (35+)
 
-### 1. Create a Skill
+j-skills follows the [Vercel Skills Specification](https://github.com/vercel-labs/skills#available-agents):
 
-Create a directory with a `skill.md` file in your project:
+| Agent | Project Path | Global Path |
+|-------|--------------|-------------|
+| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
+| Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
+| OpenCode | `.agents/skills/` | `~/.config/opencode/skills/` |
+| Cline | `.cline/skills/` | `~/.cline/skills/` |
+| Continue | `.continue/skills/` | `~/.continue/skills/` |
+| Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
+| GitHub Copilot | `.agents/skills/` | `~/.copilot/skills/` |
+| Augment | `.augment/skills/` | `~/.augment/skills/` |
+| Roo Code | `.roo/skills/` | `~/.roo/skills/` |
+| Gemini CLI | `.agents/skills/` | `~/.gemini/skills/` |
+
+<details>
+<summary>View All 35+ Agents</summary>
+
+- Amp / Kimi CLI / Replit - `.agents/skills/`
+- Antigravity - `.agent/skills/`
+- OpenClaw - `skills/`
+- CodeBuddy - `.codebuddy/skills/`
+- Command Code - `.commandcode/skills/`
+- Crush - `.crush/skills/`
+- Droid - `.factory/skills/`
+- Goose - `.goose/skills/`
+- Junie - `.junie/skills/`
+- iFlow CLI - `.iflow/skills/`
+- Kilo Code - `.kilocode/skills/`
+- Kiro CLI - `.kiro/skills/`
+- Kode - `.kode/skills/`
+- MCPJam - `.mcpjam/skills/`
+- Mistral Vibe - `.vibe/skills/`
+- Mux - `.mux/skills/`
+- OpenHands - `.openhands/skills/`
+- Pi - `.pi/skills/`
+- Qoder - `.qoder/skills/`
+- Qwen Code - `.qwen/skills/`
+- Trae - `.trae/skills/`
+- Zencoder - `.zencoder/skills/`
+- Neovate - `.neovate/skills/`
+- Pochi - `.pochi/skills/`
+- AdaL - `.adal/skills/`
+
+</details>
+
+## Web GUI
+
+j-skills includes a visual interface for easier management:
 
 ```bash
-my-skill/
-├── skill.md          # Required: skill description file
-└── [other files...]  # Optional: additional files, templates, etc.
+# Start development servers
+pnpm dev:all
+
+# Or separately:
+pnpm dev:server  # Backend :3001
+pnpm dev:web     # Frontend :5173
 ```
 
-`skill.md` format example:
+**Features:**
+- Visual skill browser
+- One-click install/uninstall
+- SKILL.md preview
+- Source folder monitoring
+- Settings management
+
+## Skill Format
+
+Create a `skill.md` file in your skill directory:
 
 ```markdown
 ---
 name: my-skill
-description: A skill for generating TypeScript types
+description: Brief description of what this skill does
 ---
 
 # My Skill
 
-Detailed description of the skill...
+Detailed instructions for the AI agent...
 
 ## Usage
 
-1. First...
-2. Then...
+1. First step
+2. Second step
 ```
 
-### 2. Link Local Skill
+## Configuration
 
-```bash
-cd my-skill
-j-skills link
-```
-
-### 3. Install to Target Environment
-
-```bash
-# Install to current project
-j-skills install my-skill
-
-# Global installation
-j-skills install my-skill --global
-```
-
-### 4. Hot-Reload Development
-
-Since `link` uses symbolic links, changes to your local skill are immediately reflected in all installed environments:
-
-```bash
-# Edit skill.md
-vim skill.md
-
-# Changes are visible immediately, no reinstallation needed!
-```
-
-## Symlink vs Copy
-
-j-skills uses **symbolic links (symlinks)** as the default linking method:
-
-| Feature | Symlink | Copy |
-|-----|-------|------|
-| Disk Usage | ❗ Very Low | ✅ High |
-| Hot-Reload | ✅ Supported | ❌ Not Supported |
-| Cross-Platform | ✅ Well Supported | ✅ Perfectly Supported |
-| Recommended For | Development & Debugging | Production Deployment |
-
-## Configuration File
-
-Configuration file location: `~/.j-skills/config.json`
+Config file: `~/.j-skills/config.json`
 
 ```json
 {
@@ -245,50 +312,22 @@ Configuration file location: `~/.j-skills/config.json`
 }
 ```
 
-## Web GUI
+## Comparison
 
-j-skills provides a local Web GUI for visual skill management.
-
-### Start GUI
-
-```bash
-# Start both frontend and backend
-pnpm dev:server &  # Backend :3001
-pnpm dev:web       # Frontend :5173
-
-# Or run in project root
-pnpm dev:all
-```
-
-### GUI Features
-
-- **Skills Management** - View linked/installed skills with search and uninstall support
-- **Develop** - Link local skill directories, preview SKILL.md content
-- **Settings** - Configure default installation environments
-
-### Tech Stack
-
-- **CLI**: TypeScript + tsup + cac + @clack/prompts
-- **Backend**: Express + TypeScript (port 3001)
-- **Frontend**: React + Vite + Tailwind CSS + Zustand (port 5173)
-- **Communication**: Frontend accesses backend API via Vite proxy
-
-## Comparison with Vercel Skills
-
-| Feature | j-skills | Vercel Skills |
-|-----|----------|--------------|
-| Supported Environments | 35+ | 35+ |
-| Local Linking | ✅ | ❌ |
-| Registry Management | ✅ | ❌ |
-| Interactive Installation | ✅ | ✅ |
-| Global/Project Level | ✅ | ✅ |
-| Web GUI | ✅ | ❌ |
+| Feature | j-skills | Manual Copy | Vercel Skills |
+|---------|----------|-------------|---------------|
+| Central Registry | ✅ | ❌ | ❌ |
+| One-command Install | ✅ | ❌ | ✅ |
+| Hot-Reload | ✅ | ❌ | ❌ |
+| Multi-environment | ✅ | ❌ | ✅ |
+| Visual GUI | ✅ | ❌ | ❌ |
+| 35+ Agents | ✅ | - | ✅ |
 
 ## License
 
 MIT
 
-## Related Resources
+## Resources
 
 - [Vercel Skills Specification](https://github.com/vercel-labs/skills)
 - [Claude Code Documentation](https://docs.anthropic.com)
