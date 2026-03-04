@@ -16,17 +16,23 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "pnpm build:all && pnpm build:tauri",
+    "dev": "pnpm dev:tauri",
     "typecheck": "tsc --noEmit",
     "start": "node ./dist/index.js",
     "dev:all": "pnpm run --parallel dev:server:dev & pnpm --filter @wangjs-jacky/j-skills-web dev",
     "dev:server": "pnpm --filter @wangjs-jacky/j-skills-server dev",
     "dev:web": "pnpm --filter @wangjs-jacky/j-skills-web dev",
+    "dev:tauri": "tauri dev",
     "build:server": "pnpm --filter @wangjs-jacky/j-skills-server build",
     "build:web": "pnpm --filter @wangjs-jacky/j-skills-web build",
-    "build:all": "pnpm build && pnpm build:server && pnpm build:web",
-    "prepublishOnly": "pnpm build"
+    "build:all": "pnpm build:cli && pnpm build:web",
+    "build:cli": "tsup",
+    "build:tauri": "tauri build",
+    "build:macos": "tauri build --target universal-apple-darwin",
+    "build:macos-intel": "tauri build --target x86_64-apple-darwin",
+    "build:macos-arm": "tauri build --target aarch64-apple-darwin",
+    "prepublishOnly": "pnpm build:cli"
   },
   "keywords": [
     "cli",
