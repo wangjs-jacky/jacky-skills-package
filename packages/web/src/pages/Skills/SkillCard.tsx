@@ -150,7 +150,7 @@ export default function SkillCard({ skill, onUnlink, onToggleEnv, onExport }: Sk
       </div>
 
       {/* Hover corner accent */}
-      <div className="absolute top-0 right-0 w-20 h-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      <div className="absolute top-0 right-0 w-20 h-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
         <div
           className="absolute top-0 right-0 w-full h-full"
           style={{
