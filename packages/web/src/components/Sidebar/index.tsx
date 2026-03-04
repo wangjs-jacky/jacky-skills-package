@@ -61,7 +61,7 @@ export default function Sidebar() {
                 />
                 <div className="flex flex-col">
                   <span className="font-medium text-sm">{item.label}</span>
-                  <span className="text-[10px] text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-[10px] text-[var(--color-text-muted)]">
                     {item.description}
                   </span>
                 </div>
