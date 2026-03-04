@@ -10,6 +10,7 @@ import {
   unregisterSkill,
   registerSkill,
   updateSkillEnvironments,
+  addSourceFolder,
 } from '../../../../src/lib/registry.js'
 import { getLinkedDir, getGlobalSkillsDir, ensureGlobalDir } from '../../../../src/lib/paths.js'
 import { getGlobalEnvPath, getFirstExistingProjectPath, type Environment } from '../../../../src/lib/environments.js'
@@ -156,6 +157,7 @@ export function createSkillsRouter(): Router {
           name: skillName,
           path: resolvedPath,
           source: 'linked',
+          sourceFolder: resolvedPath,
         })
 
         return res.json({
@@ -197,6 +199,7 @@ export function createSkillsRouter(): Router {
           name: skillName,
           path: subDirPath,
           source: 'linked',
+          sourceFolder: resolvedPath,
         })
 
         linkedSkills.push(skillName)
@@ -209,6 +212,14 @@ export function createSkillsRouter(): Router {
           error: 'No skills found (directories with SKILL.md)',
         })
       }
+
+      // 记录源文件夹
+      addSourceFolder({
+        path: resolvedPath,
+        addedAt: new Date().toISOString(),
+        lastScanned: new Date().toISOString(),
+        skillNames: linkedSkills,
+      })
 
       res.json({
         success: true,
