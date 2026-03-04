@@ -1,5 +1,5 @@
 {
-  "name": "@j-skills/server",
+  "name": "@wangjs-jacky/j-skills-server",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",

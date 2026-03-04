@@ -1,7 +1,7 @@
 {
-  "name": "j-skills",
+  "name": "@wangjs-jacky/j-skills",
   "version": "0.1.0",
-  "description": "CLI tool for managing Claude Code Skills - link, install, and manage skills across multiple environments",
+  "description": "CLI tool for managing Agent Skills - link, install, and manage skills across 35+ coding agent environments",
   "type": "module",
   "bin": {
     "j-skills": "./bin/j-skills.js"
@@ -9,19 +9,24 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "start": "node ./dist/index.js",
-    "dev:all": "pnpm run --parallel dev:server:dev & pnpm --filter @j-skills/web dev",
-    "dev:server": "pnpm --filter @j-skills/server dev",
-    "dev:web": "pnpm --filter @j-skills/web dev",
-    "build:server": "pnpm --filter @j-skills/server build",
-    "build:web": "pnpm --filter @j-skills/web build",
-    "build:all": "pnpm build && pnpm build:server && pnpm build:web"
+    "dev:all": "pnpm run --parallel dev:server:dev & pnpm --filter @wangjs-jacky/j-skills-web dev",
+    "dev:server": "pnpm --filter @wangjs-jacky/j-skills-server dev",
+    "dev:web": "pnpm --filter @wangjs-jacky/j-skills-web dev",
+    "build:server": "pnpm --filter @wangjs-jacky/j-skills-server build",
+    "build:web": "pnpm --filter @wangjs-jacky/j-skills-web build",
+    "build:all": "pnpm build && pnpm build:server && pnpm build:web",
+    "prepublishOnly": "pnpm build"
   },
   "keywords": [
     "cli",

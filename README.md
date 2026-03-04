@@ -125,10 +125,19 @@ vim ~/projects/my-awesome-skill/skill.md
 
 ```bash
 # Global installation
-npm install -g j-skills
+npm install -g @wangjs-jacky/j-skills
 
 # Or use npx (no installation required)
-npx j-skills <command>
+npx @wangjs-jacky/j-skills <command>
+```
+
+## npm Package
+
+This package is published to npm as [`@wangjs-jacky/j-skills`](https://www.npmjs.com/package/@wangjs-jacky/j-skills).
+
+```bash
+# View package info
+npm info @wangjs-jacky/j-skills
 ```
 
 ## Commands

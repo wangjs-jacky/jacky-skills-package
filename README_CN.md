@@ -125,10 +125,19 @@ vim ~/projects/my-awesome-skill/skill.md
 
 ```bash
 # 全局安装
-npm install -g j-skills
+npm install -g @wangjs-jacky/j-skills
 
 # 或使用 npx（无需安装）
-npx j-skills <command>
+npx @wangjs-jacky/j-skills <command>
+```
+
+## npm 包
+
+本包已发布到 npm：[`@wangjs-jacky/j-skills`](https://www.npmjs.com/package/@wangjs-jacky/j-skills)
+
+```bash
+# 查看包信息
+npm info @wangjs-jacky/j-skills
 ```
 
 ## 命令
