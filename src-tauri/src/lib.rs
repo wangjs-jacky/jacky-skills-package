@@ -1,6 +1,8 @@
 mod error;
+mod models;
 
 pub use error::{AppError, Result};
+pub use models::{SkillInfo, SkillSource, SourceFolder, AppConfig, InstallMethod};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
