@@ -1,13 +1,29 @@
-import { useState } from 'react'
-import { FolderOpen, Link, FileText, Code2, Sparkles, FolderSync } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { FolderOpen, Link, FileText, Code2, FolderSync, Trash2, RefreshCw } from 'lucide-react'
 import { useStore } from '../../stores'
-import { skillsApi } from '../../api/client'
+import { skillsApi, type SourceFolder } from '../../api/client'
 
 export default function DevelopPage() {
   const { showToast } = useStore()
   const [skillPath, setSkillPath] = useState('')
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
   const [skillContent, setSkillContent] = useState<string>('')
+  const [sourceFolders, setSourceFolders] = useState<SourceFolder[]>([])
+
+  useEffect(() => {
+    loadSourceFolders()
+  }, [])
+
+  async function loadSourceFolders() {
+    try {
+      const response = await skillsApi.listSourceFolders()
+      if (response.success) {
+        setSourceFolders(response.data)
+      }
+    } catch (err) {
+      // 忽略错误
+    }
+  }
 
   async function handleLink() {
     if (!skillPath.trim()) {
@@ -21,9 +37,22 @@ export default function DevelopPage() {
         const { linked, count } = response.data
         showToast(`Linked ${count} skill${count > 1 ? 's' : ''}: ${linked.join(', ')}`, 'success')
         setSkillPath('')
+        loadSourceFolders() // 刷新源文件夹列表
       }
     } catch (err) {
       showToast('Failed to link skills', 'error')
+    }
+  }
+
+  async function handleRemoveFolder(path: string) {
+    try {
+      const response = await skillsApi.removeSourceFolder(path)
+      if (response.success) {
+        showToast('Folder removed', 'success')
+        loadSourceFolders()
+      }
+    } catch (err) {
+      showToast('Failed to remove folder', 'error')
     }
   }
 
@@ -99,35 +128,66 @@ export default function DevelopPage() {
             </div>
           </div>
 
-          {/* Quick Actions Card */}
+          {/* Source Folders Card */}
           <div className="glass-card rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-[var(--color-amber-dim)] border border-[var(--color-amber)]/30 flex items-center justify-center">
-                <FolderOpen size={16} className="text-[var(--color-amber)]" />
-              </div>
-              <h3 className="font-mono font-semibold text-[var(--color-text)]">
-                Quick Actions
-              </h3>
-            </div>
-
-            <div className="space-y-2">
-              <button
-                onClick={() => setSkillPath('/Users/jiashengwang/jacky-github/jacky-skills')}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl
-                           bg-white/[0.02] border border-[var(--color-border)]
-                           text-[var(--color-text-muted)] hover:text-[var(--color-text)]
-                           hover:bg-white/[0.04] transition-all duration-300
-                           font-mono text-sm text-left"
-              >
-                <Sparkles size={16} className="text-[var(--color-primary)]" />
-                <div className="flex flex-col">
-                  <span>Link jacky-skills directory</span>
-                  <span className="text-[10px] text-[var(--color-text-muted)]">
-                    /Users/jiashengwang/jacky-github/jacky-skills
-                  </span>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[var(--color-amber-dim)] border border-[var(--color-amber)]/30 flex items-center justify-center">
+                  <FolderOpen size={16} className="text-[var(--color-amber)]" />
                 </div>
+                <h3 className="font-mono font-semibold text-[var(--color-text)]">
+                  Source Folders
+                </h3>
+              </div>
+              <button
+                onClick={loadSourceFolders}
+                className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-white/[0.04] transition-all"
+                title="Refresh"
+              >
+                <RefreshCw size={14} />
               </button>
             </div>
+
+            {sourceFolders.length > 0 ? (
+              <div className="space-y-2">
+                {sourceFolders.map((folder) => (
+                  <div
+                    key={folder.path}
+                    className="group flex items-center justify-between gap-3 px-4 py-3 rounded-xl
+                               bg-white/[0.02] border border-[var(--color-border)]
+                               hover:bg-white/[0.04] transition-all duration-300"
+                  >
+                    <div
+                      className="flex-1 cursor-pointer"
+                      onClick={() => setSkillPath(folder.path)}
+                    >
+                      <p className="font-mono text-sm text-[var(--color-text)] truncate">
+                        {folder.path}
+                      </p>
+                      <p className="text-[10px] text-[var(--color-text-muted)] mt-1">
+                        {folder.skillNames.length} skill{folder.skillNames.length !== 1 ? 's' : ''} • Added {new Date(folder.addedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveFolder(folder.path)}
+                      className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-red)] hover:bg-[var(--color-red-dim)] transition-all opacity-0 group-hover:opacity-100"
+                      title="Remove"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-[var(--color-text-muted)] font-mono text-sm">
+                  No source folders yet
+                </p>
+                <p className="text-[var(--color-text-muted)]/60 font-mono text-xs mt-1">
+                  Link a directory to get started
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
