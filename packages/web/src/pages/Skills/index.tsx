@@ -5,7 +5,7 @@ import { Search, Sparkles, Package } from 'lucide-react'
 import SkillList from './SkillList'
 
 export default function SkillsPage() {
-  const { skills, setSkills, isLoading, setIsLoading, showToast } = useStore()
+  const { skills, setSkills, isLoading, setIsLoading, showToast, updateSkillEnvironments } = useStore()
 
   useEffect(() => {
     loadSkills()
@@ -39,17 +39,22 @@ export default function SkillsPage() {
 
   async function handleToggleEnv(name: string, env: string, enable: boolean) {
     try {
+      const skill = skills.find(s => s.name === name)
+      const currentEnvs = skill?.installedEnvironments || []
+
       if (enable) {
         const response = await skillsApi.install(name, env, true)
         if (response.success) {
+          const newEnvs = [...currentEnvs, env]
+          updateSkillEnvironments(name, newEnvs)
           showToast(`Installed ${name} to ${env}`, 'success')
-          loadSkills()
         }
       } else {
         const response = await skillsApi.uninstall(name, env, true)
         if (response.success) {
+          const newEnvs = currentEnvs.filter(e => e !== env)
+          updateSkillEnvironments(name, newEnvs)
           showToast(`Removed ${name} from ${env}`, 'success')
-          loadSkills()
         }
       }
     } catch (err) {

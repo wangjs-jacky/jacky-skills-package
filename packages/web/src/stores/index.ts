@@ -5,6 +5,7 @@ interface AppState {
   // Skills
   skills: SkillInfo[]
   setSkills: (skills: SkillInfo[]) => void
+  updateSkillEnvironments: (skillName: string, environments: string[]) => void
 
   // Environments
   environments: EnvironmentInfo[]
@@ -28,6 +29,14 @@ export const useStore = create<AppState>((set) => ({
   // Skills
   skills: [],
   setSkills: (skills) => set({ skills }),
+  updateSkillEnvironments: (skillName, environments) =>
+    set((state) => ({
+      skills: state.skills.map((skill) =>
+        skill.name === skillName
+          ? { ...skill, installedEnvironments: environments }
+          : skill
+      ),
+    })),
 
   // Environments
   environments: [],
