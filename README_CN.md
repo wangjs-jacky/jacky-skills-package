@@ -2,6 +2,11 @@
 
 > 统一管理零散 Agent Skills 的注册中心 - 一次 link，到处 install
 
+[![npm version](https://img.shields.io/npm/v/@wangjs-jacky/j-skills.svg)](https://www.npmjs.com/package/@wangjs-jacky/j-skills)
+[![npm downloads](https://img.shields.io/npm/dm/@wangjs-jacky/j-skills.svg)](https://www.npmjs.com/package/@wangjs-jacky/j-skills)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/wangjs-jacky/jacky-skills-package.svg)](https://github.com/wangjs-jacky/jacky-skills-package/stargazers)
+
 [English](./README.md)
 
 ## 问题背景
