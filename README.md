@@ -2,21 +2,24 @@
 
 > CLI tool for managing Agent Skills - link, install, and manage skills across 35+ coding agent environments
 
-j-skills 是一个用于管理 Agent Skills 的命令行工具，支持 Claude Code、Cursor、OpenCode 等 35+ 个主流 AI 编码助手。它允许你轻松地在多个环境之间链接、安装和管理 skills。
+[中文文档](./README_CN.md)
 
-## 特性
+j-skills is a command-line tool for managing Agent Skills, supporting 35+ mainstream AI coding assistants including Claude Code, Cursor, OpenCode, and more. It allows you to easily link, install, and manage skills across multiple environments.
 
-- **多环境支持** - 支持 35+ 个主流 AI 编码助手
-- **灵活的安装方式** - 支持项目级和全局级安装
-- **软链接管理** - 使用符号链接实现本地开发热更新
-- **统一管理** - 一条命令安装到多个环境
-- **交互式界面** - 友好的命令行交互体验
+## Features
 
-## 支持的 Agents
+- **Multi-Environment Support** - Supports 35+ mainstream AI coding assistants
+- **Flexible Installation** - Supports both project-level and global installation
+- **Symlink Management** - Uses symbolic links for hot-reload during local development
+- **Unified Management** - Install to multiple environments with a single command
+- **Interactive CLI** - Friendly command-line interface with interactive prompts
+- **Web GUI** - Visual management interface for easier skill management
 
-j-skills 支持以下主流 AI 编码助手（遵循 [Vercel Skills 规范](https://github.com/vercel-labs/skills#available-agents)）：
+## Supported Agents
 
-| Agent | 项目路径 | 全局路径 |
+j-skills supports the following AI coding assistants (following the [Vercel Skills Specification](https://github.com/vercel-labs/skills#available-agents)):
+
+| Agent | Project Path | Global Path |
 |-------|---------|----------|
 | Claude Code | `.claude/skills/` | `~/.claude/skills/` |
 | Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
@@ -28,10 +31,10 @@ j-skills 支持以下主流 AI 编码助手（遵循 [Vercel Skills 规范](http
 | Augment | `.augment/skills/` | `~/.augment/skills/` |
 | Roo Code | `.roo/skills/` | `~/.roo/skills/` |
 | Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
-| ...还有 25+ 更多 | | |
+| ...and 25+ more | | |
 
 <details>
-<summary>查看完整列表</summary>
+<summary>View Full List</summary>
 
 - Amp / Kimi CLI / Replit - `.agents/skills/` / `~/.config/agents/skills/`
 - Antigravity - `.agent/skills/` / `~/.gemini/antigravity/skills/`
@@ -63,177 +66,177 @@ j-skills 支持以下主流 AI 编码助手（遵循 [Vercel Skills 规范](http
 
 </details>
 
-## 安装
+## Installation
 
 ```bash
-# 全局安装
+# Global installation
 npm install -g j-skills
 
-# 或使用 npx（无需安装）
+# Or use npx (no installation required)
 npx j-skills <command>
 ```
 
-## 命令
+## Commands
 
-### link - 链接本地 skill
+### link - Link local skill
 
-将本地 skill 目录链接到全局注册表，使用软链接实现热更新。
+Link a local skill directory to the global registry using symbolic links for hot-reload.
 
 ```bash
-# 链接当前目录（必须包含 skill.md）
+# Link current directory (must contain skill.md)
 j-skills link
 
-# 链接指定目录
+# Link specified directory
 j-skills link /path/to/skill
 
-# 列出已链接的 skills
+# List linked skills
 j-skills link --list
 
-# 取消链接
+# Unlink
 j-skills link --unlink <skill-name>
 ```
 
-### install - 安装 skill
+### install - Install skill
 
-将 skill 安装到指定环境的项目或全局目录。
+Install a skill to specified environment's project or global directory.
 
 ```bash
-# 交互式安装
+# Interactive installation
 j-skills install <skill-name>
 
-# 全局安装
+# Global installation
 j-skills install <skill-name> --global
 
-# 指定环境
+# Specify environments
 j-skills install <skill-name> --env claude-code,cursor
 
-# 显示详细日志
+# Verbose output
 j-skills install <skill-name> --verbose
 ```
 
-### uninstall - 卸载 skill
+### uninstall - Uninstall skill
 
-从已安装的环境中移除 skill。
+Remove a skill from installed environments.
 
 ```bash
-# 交互式卸载
+# Interactive uninstallation
 j-skills uninstall <skill-name>
 
-# 全局卸载
+# Global uninstallation
 j-skills uninstall <skill-name> --global
 
-# 跳过确认
+# Skip confirmation
 j-skills uninstall <skill-name> --yes
 ```
 
-### list - 列出 skills
+### list - List skills
 
-查看已安装的 skills。
+View installed skills.
 
 ```bash
-# 列出项目级 skills（默认）
+# List project-level skills (default)
 j-skills list
 
-# 列出全局 skills
+# List global skills
 j-skills list --global
 
-# 列出所有 skills（项目 + 全局）
+# List all skills (project + global)
 j-skills list --all
 
-# 搜索 skills
+# Search skills
 j-skills list --search <keyword>
 
-# JSON 格式输出
+# JSON output
 j-skills list --json
 ```
 
-### config - 配置管理
+### config - Configuration management
 
-管理全局配置。
+Manage global configuration.
 
 ```bash
-# 查看配置
+# View configuration
 j-skills config
 
-# 设置配置项
+# Set configuration
 j-skills config set <key> <value>
 
-# 删除配置项
+# Delete configuration
 j-skills config delete <key>
 ```
 
-## 工作流程
+## Workflow
 
-### 1. 创建 Skill
+### 1. Create a Skill
 
-在项目中创建一个包含 `skill.md` 的目录：
+Create a directory with a `skill.md` file in your project:
 
 ```bash
 my-skill/
-├── skill.md          # 必需：skill 描述文件
-└── [其他资源...]    # 可选：附加文件、模板等
+├── skill.md          # Required: skill description file
+└── [other files...]  # Optional: additional files, templates, etc.
 ```
 
-`skill.md` 格式示例：
+`skill.md` format example:
 
 ```markdown
 ---
 name: my-skill
-description: 一个用于生成 TypeScript 类型的 skill
+description: A skill for generating TypeScript types
 ---
 
 # My Skill
 
-这是 skill 的详细说明...
+Detailed description of the skill...
 
-## 使用方法
+## Usage
 
-1. 首先...
-2. 然后...
+1. First...
+2. Then...
 ```
 
-### 2. 链接本地 Skill
+### 2. Link Local Skill
 
 ```bash
 cd my-skill
 j-skills link
 ```
 
-### 3. 安装到目标环境
+### 3. Install to Target Environment
 
 ```bash
-# 安装到当前项目
+# Install to current project
 j-skills install my-skill
 
-# 全局安装
+# Global installation
 j-skills install my-skill --global
 ```
 
-### 4. 热更新开发
+### 4. Hot-Reload Development
 
-由于 `link` 使用软链接，你对本地 skill 的修改会立即反映到所有已安装的环境：
+Since `link` uses symbolic links, changes to your local skill are immediately reflected in all installed environments:
 
 ```bash
-# 编辑 skill.md
+# Edit skill.md
 vim skill.md
 
-# 修改立即可见，无需重新安装！
+# Changes are visible immediately, no reinstallation needed!
 ```
 
-## 软链接 vs 复制
+## Symlink vs Copy
 
-j-skills 使用**软链接（符号链接）**作为默认的链接方式：
+j-skills uses **symbolic links (symlinks)** as the default linking method:
 
-| 特性 | 软链接 | 复制 |
+| Feature | Symlink | Copy |
 |-----|-------|------|
-| 磁盘占用 | ❗ 极低 | ✅ 高 |
-| 热更新 | ✅ 支持 | ❌ 不支持 |
-| 跨平台 | ✅ 良好支持 | ✅ 完美支持 |
-| 推荐场景 | 开发调试 | 生产部署 |
+| Disk Usage | ❗ Very Low | ✅ High |
+| Hot-Reload | ✅ Supported | ❌ Not Supported |
+| Cross-Platform | ✅ Well Supported | ✅ Perfectly Supported |
+| Recommended For | Development & Debugging | Production Deployment |
 
-## 配置文件
+## Configuration File
 
-配置文件位置：`~/.j-skills/config.json`
+Configuration file location: `~/.j-skills/config.json`
 
 ```json
 {
@@ -242,49 +245,51 @@ j-skills 使用**软链接（符号链接）**作为默认的链接方式：
 }
 ```
 
-## 与 Vercel Skills 的区别
-
-| 特性 | j-skills | Vercel Skills |
-|-----|----------|--------------|
-| 支持环境数 | 35+ | 35+ |
-| 本地链接 | ✅ | ❌ |
-| 注册表管理 | ✅ | ❌ |
-| 交互式安装 | ✅ | ✅ |
-| 全局/项目级 | ✅ | ✅ |
-
-## 许可证
-
-MIT
-
-## 相关资源
-
-- [Vercel Skills 规范](https://github.com/vercel-labs/skills)
-- [Claude Code 文档](https://docs.anthropic.com)
-- [Agent Skills Directory](https://skills.sh)
-
 ## Web GUI
 
-j-skills 提供了一个本地 Web GUI 界面，方便可视化管理 Skills。
+j-skills provides a local Web GUI for visual skill management.
 
-### 启动 GUI
+### Start GUI
 
 ```bash
-# 同时启动前后端
-pnpm dev:server &  # 后端 :3001
-pnpm dev:web       # 前端 :5173
+# Start both frontend and backend
+pnpm dev:server &  # Backend :3001
+pnpm dev:web       # Frontend :5173
 
-# 或在项目根目录运行
+# Or run in project root
 pnpm dev:all
 ```
 
-### GUI 功能
+### GUI Features
 
-- **Skills 管理** - 查看已链接/安装的 Skills，支持搜索和卸载
-- **Develop** - 链接本地 Skill 目录，预览 SKILL.md 内容
-- **Settings** - 配置默认安装环境
+- **Skills Management** - View linked/installed skills with search and uninstall support
+- **Develop** - Link local skill directories, preview SKILL.md content
+- **Settings** - Configure default installation environments
 
-### 技术架构
+### Tech Stack
 
-- **后端**: Express + TypeScript (端口 3001)
-- **前端**: React + Vite + Tailwind CSS + Zustand (端口 5173)
-- **通信**: 前端通过 Vite 代理访问后端 API
+- **CLI**: TypeScript + tsup + cac + @clack/prompts
+- **Backend**: Express + TypeScript (port 3001)
+- **Frontend**: React + Vite + Tailwind CSS + Zustand (port 5173)
+- **Communication**: Frontend accesses backend API via Vite proxy
+
+## Comparison with Vercel Skills
+
+| Feature | j-skills | Vercel Skills |
+|-----|----------|--------------|
+| Supported Environments | 35+ | 35+ |
+| Local Linking | ✅ | ❌ |
+| Registry Management | ✅ | ❌ |
+| Interactive Installation | ✅ | ✅ |
+| Global/Project Level | ✅ | ✅ |
+| Web GUI | ✅ | ❌ |
+
+## License
+
+MIT
+
+## Related Resources
+
+- [Vercel Skills Specification](https://github.com/vercel-labs/skills)
+- [Claude Code Documentation](https://docs.anthropic.com)
+- [Agent Skills Directory](https://skills.sh)
