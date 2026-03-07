@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "j-skills",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "identifier": "com.wangjs-jacky.j-skills",
   "build": {
     "frontendDist": "../packages/web/dist",

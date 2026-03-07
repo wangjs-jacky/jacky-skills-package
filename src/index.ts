@@ -13,7 +13,7 @@ import { registerListCommand } from './commands/list.js'
 import { registerConfigCommand } from './commands/config.js'
 
 // 版本号
-const VERSION = '0.1.0'
+const VERSION = '0.3.0'
 
 // 创建 CLI 实例
 const cli = cac('j-skills')

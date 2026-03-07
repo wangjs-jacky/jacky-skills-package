@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-03-07
+
+### Added
+- **E2E Testing Framework** - Playwright integration with smoke tests
+  - 5 smoke tests covering critical paths
+  - Environment detection validation
+  - UI rendering verification
+  - Page navigation tests
+- **Comprehensive Documentation**
+  - L1-L8 gate checks detailed explanation
+  - Migration completion report
+  - E2E test report
+  - GitHub publish guide
+- **Test Coverage**
+  - TypeScript contract tests
+  - Rust unit tests
+  - E2E smoke tests (5 passed)
+
+### Changed
+- **Version Unification** - All packages now use consistent version 0.3.0
+  - package.json
+  - packages/web/package.json
+  - packages/server/package.json
+  - src-tauri/Cargo.toml
+  - src-tauri/tauri.conf.json
+  - src/index.ts
+- **Documentation Structure** - Better organized with separate files for each topic
+
+### Technical
+- Added @playwright/test dependency
+- Created playwright.config.ts configuration
+- Added test:e2e, test:e2e:ui, test:e2e:debug scripts
+- Improved test coverage across all layers
+
+### Quality Gates
+- ✅ L1-L8 gate checks completed
+- ✅ Unit tests (TypeScript + Rust)
+- ✅ E2E smoke tests (5 passed)
+- ✅ Build gates passed (cargo check + web build)
+- ✅ Documentation updated
+
 ## [0.2.0] - 2026-03-05
 
 ### Added
