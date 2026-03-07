@@ -18,6 +18,10 @@
   "scripts": {
     "build": "pnpm build:all && pnpm build:tauri",
     "dev": "pnpm dev:tauri",
+    "dev:web": "pnpm --filter @wangjs-jacky/j-skills-web dev",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
     "typecheck": "tsc --noEmit",
     "start": "node ./dist/index.js",
     "dev:all": "pnpm run --parallel dev:server:dev & pnpm --filter @wangjs-jacky/j-skills-web dev",
@@ -58,8 +62,10 @@
     "cac": "^6.7.14"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tauri-apps/cli": "^2.10.1",
     "@types/node": "^22.0.0",
+    "playwright": "^1.58.2",
     "tsup": "^8.0.0",
     "typescript": "^5.6.0"
   },

@@ -50,3 +50,7 @@ openspec/
 
 # Global skill storage (user-specific)
 .j-skills/
+# Playwright
+playwright-report/
+test-results/
+
