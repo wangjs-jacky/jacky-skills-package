@@ -10,6 +10,7 @@
     "beforeBuildCommand": "pnpm build:web"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "j-skills",

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use super::skill::SourceFolder;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AppConfig {
     #[serde(default)]
     pub default_environments: Vec<String>,
