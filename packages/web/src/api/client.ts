@@ -222,14 +222,37 @@ export const configApi = {
 
   async update(config: Partial<ConfigInfo>): Promise<ApiResponse<ConfigInfo>> {
     if (isTauriEnv()) {
+      // 先读取当前配置,避免覆盖未提供的字段
+      const currentResult = await safeTauriInvoke<{
+        defaultEnvironments: string[]
+        autoConfirm: boolean
+        installMethod: string
+        autoLaunch: boolean
+        sourceFolders: Array<{
+          path: string
+          addedAt: string
+          lastScanned?: string
+          skillNames: string[]
+        }>
+        enableWatcher: boolean
+        theme: string
+      }>('get_config')
+
+      if (!currentResult.success) {
+        return { success: false, data: null as unknown as ConfigInfo, error: currentResult.error }
+      }
+
+      const current = currentResult.data
+
+      // 合并配置:只更新提供的字段,保留其他字段
       const tauriConfig = {
-        defaultEnvironments: config.defaultEnvironments ?? [],
-        autoConfirm: config.autoConfirm ?? false,
-        installMethod: config.installMethod ?? 'copy',
-        autoLaunch: false,
-        sourceFolders: [],
-        enableWatcher: false,
-        theme: 'system',
+        defaultEnvironments: config.defaultEnvironments ?? current.defaultEnvironments,
+        autoConfirm: config.autoConfirm ?? current.autoConfirm,
+        installMethod: config.installMethod ?? current.installMethod,
+        autoLaunch: current.autoLaunch,
+        sourceFolders: current.sourceFolders,  // 🔥 保留现有 sourceFolders
+        enableWatcher: current.enableWatcher,
+        theme: current.theme,
       }
       return safeTauriInvoke<ConfigInfo>('update_config', { config: tauriConfig })
     }
