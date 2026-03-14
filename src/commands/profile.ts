@@ -32,77 +32,75 @@ const WORKFLOW_OPTIONS = [
 ]
 
 /**
- * 注册 profile 命令
+ * 注册 profile 命令（使用扁平命令结构）
  */
 export function registerProfileCommand(cli: ReturnType<typeof cac>): void {
-  const profileCli = cli.command('profile', 'Manage profiles')
-
-  // profile list / profile ls
-  profileCli
-    .command('list', 'List all profiles')
-    .alias('ls')
+  // profile:list / profile:ls
+  cli
+    .command('profile:list', 'List all profiles')
+    .alias('profile:ls')
     .option('--json', 'Output as JSON')
     .action((options?: { json?: boolean }) => {
       handleProfileList(options?.json)
     })
 
-  // profile show [name]
-  profileCli
-    .command('show [name]', 'Show profile details')
+  // profile:show
+  cli
+    .command('profile:show [name]', 'Show profile details')
     .action((name?: string) => {
       handleProfileShow(name)
     })
 
-  // profile use [name]
-  profileCli
-    .command('use [name]', 'Switch to a profile')
+  // profile:use
+  cli
+    .command('profile:use [name]', 'Switch to a profile')
     .option('-p, --project', 'Set as project-level profile')
     .action(async (name?: string, options?: { project?: boolean }) => {
       await handleProfileUse(name, options?.project)
     })
 
-  // profile current
-  profileCli
-    .command('current', 'Show current active profile')
+  // profile:current
+  cli
+    .command('profile:current', 'Show current active profile')
     .option('--json', 'Output as JSON')
     .action((options?: { json?: boolean }) => {
       handleProfileCurrent(options?.json)
     })
 
-  // profile create [name]
-  profileCli
-    .command('create [name]', 'Create a new profile interactively')
+  // profile:create
+  cli
+    .command('profile:create [name]', 'Create a new profile interactively')
     .action(async (name?: string) => {
       await handleProfileCreate(name)
     })
 
-  // profile delete [name] / profile rm [name]
-  profileCli
-    .command('delete [name]', 'Delete a profile')
-    .alias('rm')
+  // profile:delete / profile:rm
+  cli
+    .command('profile:delete [name]', 'Delete a profile')
+    .alias('profile:rm')
     .action(async (name?: string) => {
       await handleProfileDelete(name)
     })
 
-  // profile duplicate <from> <to> / profile cp <from> <to>
-  profileCli
-    .command('duplicate <from> <to>', 'Duplicate a profile')
-    .alias('cp')
+  // profile:duplicate / profile:cp
+  cli
+    .command('profile:duplicate <from> <to>', 'Duplicate a profile')
+    .alias('profile:cp')
     .action((from: string, to: string) => {
       handleProfileDuplicate(from, to)
     })
 
-  // profile export [name]
-  profileCli
-    .command('export [name]', 'Export profile to JSON file')
+  // profile:export
+  cli
+    .command('profile:export [name]', 'Export profile to JSON file')
     .option('-o, --output <file>', 'Output file path')
     .action((name?: string, options?: { output?: string }) => {
       handleProfileExport(name, options?.output)
     })
 
-  // profile import <file>
-  profileCli
-    .command('import <file>', 'Import profile from JSON file')
+  // profile:import
+  cli
+    .command('profile:import <file>', 'Import profile from JSON file')
     .action(async (file: string) => {
       await handleProfileImport(file)
     })
@@ -429,7 +427,7 @@ async function handleProfileCreate(name?: string): Promise<void> {
   // 创建 Profile
   const newProfile: Profile = {
     name: profileName,
-    description: description as string || undefined,
+    description: (description as string) || undefined,
     version: '1.0.0',
     workflow: workflow as WorkflowType,
     skills: {
@@ -447,7 +445,7 @@ async function handleProfileCreate(name?: string): Promise<void> {
 
   s.stop('Profile created!')
   success(`Profile "${profileName}" created successfully.`)
-  info(`Edit it with: j-skills profile edit ${profileName}`)
+  info(`Edit it with: j-skills profile:edit ${profileName}`)
 }
 
 /**

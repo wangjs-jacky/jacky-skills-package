@@ -4,6 +4,8 @@
  */
 import { cac } from 'cac'
 import { setVerboseMode, error, info } from './lib/log.js'
+import { initializeDefaultProfiles } from './lib/profiles.js'
+import { ensureGlobalDir } from './lib/paths.js'
 
 // 导入命令
 import { registerLinkCommand } from './commands/link.js'
@@ -11,12 +13,17 @@ import { registerInstallCommand } from './commands/install.js'
 import { registerUninstallCommand } from './commands/uninstall.js'
 import { registerListCommand } from './commands/list.js'
 import { registerConfigCommand } from './commands/config.js'
+import { registerProfileCommand } from './commands/profile.js'
 
 // 版本号
 const VERSION = '0.3.0'
 
 // 创建 CLI 实例
 const cli = cac('j-skills')
+
+// 初始化默认 Profiles
+ensureGlobalDir()
+initializeDefaultProfiles()
 
 // 全局选项
 cli.version(VERSION)
@@ -29,6 +36,7 @@ registerInstallCommand(cli)
 registerUninstallCommand(cli)
 registerListCommand(cli)
 registerConfigCommand(cli)
+registerProfileCommand(cli)
 
 /**
  * 判断是否为 CAC 相关错误
