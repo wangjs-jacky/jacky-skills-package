@@ -51,6 +51,34 @@ export function getRegistryPath(): string {
 }
 
 /**
+ * 获取 Profile 目录路径
+ */
+export function getProfilesDir(): string {
+  return join(getGlobalDir(), 'profiles')
+}
+
+/**
+ * 获取活跃 Profile 文件路径
+ */
+export function getActiveProfilePath(): string {
+  return join(getProfilesDir(), '_active.json')
+}
+
+/**
+ * 获取 Profile 文件路径
+ */
+export function getProfilePath(name: string): string {
+  return join(getProfilesDir(), `${name}.json`)
+}
+
+/**
+ * 获取项目级 Profile 文件路径
+ */
+export function getProjectProfilePath(projectDir: string = process.cwd()): string {
+  return join(projectDir, '.j-skills', 'profile.json')
+}
+
+/**
  * 确保全局目录存在
  */
 export function ensureGlobalDir(): void {
@@ -58,17 +86,13 @@ export function ensureGlobalDir(): void {
   const linkedDir = getLinkedDir()
   const globalSkillsDir = getGlobalSkillsDir()
   const cacheDir = getCacheDir()
+  const profilesDir = getProfilesDir()
 
-  if (!existsSync(globalDir)) {
-    mkdirSync(globalDir, { recursive: true })
-  }
-  if (!existsSync(linkedDir)) {
-    mkdirSync(linkedDir, { recursive: true })
-  }
-  if (!existsSync(globalSkillsDir)) {
-    mkdirSync(globalSkillsDir, { recursive: true })
-  }
-  if (!existsSync(cacheDir)) {
-    mkdirSync(cacheDir, { recursive: true })
+  const dirs = [globalDir, linkedDir, globalSkillsDir, cacheDir, profilesDir]
+
+  for (const dir of dirs) {
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
+    }
   }
 }
