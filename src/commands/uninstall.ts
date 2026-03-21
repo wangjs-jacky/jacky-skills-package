@@ -14,7 +14,9 @@ import {
   getSkill,
 } from '../lib/registry.js'
 import { getGlobalEnvPath, getFirstExistingProjectPath, ENVIRONMENTS, type Environment } from '../lib/environments.js'
-import { success, error, info, warn } from '../lib/log.js'
+import { success, error, info, warn, verbose } from '../lib/log.js'
+import { setVerboseMode } from '../lib/log.js'
+import { removeSkillHooks, hasSkillHooksInSettings } from '../lib/hooks.js'
 import { isCancel } from '@clack/prompts'
 
 /**
@@ -213,12 +215,17 @@ export function registerUninstallCommand(cli: ReturnType<typeof cac>): void {
     .option('-l, --local', 'Uninstall from project directory')
     .option('-y, --yes', 'Skip confirmation')
     .option('--json', 'Output as JSON')
+    .option('--verbose', 'Show detailed logs')
     .action(
       async (
         skillName?: string,
-        options?: { global?: boolean; yes?: boolean; json?: boolean; local?: boolean }
+        options?: { global?: boolean; yes?: boolean; json?: boolean; local?: boolean; verbose?: boolean }
       ) => {
         ensureGlobalDir()
+
+        if (options?.verbose) {
+          setVerboseMode(true)
+        }
 
         const isGlobal = options?.global || false
         const isLocal = options?.local || false
@@ -276,7 +283,14 @@ export function registerUninstallCommand(cli: ReturnType<typeof cac>): void {
           let count = 0
           for (const name of selected) {
             const success = await uninstallSkill(name, { ...options, global: isGlobal, local: isLocal })
-            if (success) count++
+            if (success) {
+              count++
+              // 移除 hooks
+              if (hasSkillHooksInSettings(name)) {
+                removeSkillHooks(name)
+                verbose(`Removed hooks for skill: ${name}`)
+              }
+            }
           }
 
           if (options?.json) {
@@ -374,6 +388,12 @@ export function registerUninstallCommand(cli: ReturnType<typeof cac>): void {
               removedPaths.push(path)
             }
           }
+        }
+
+        // 移除 hooks
+        if (hasSkillHooksInSettings(skillName)) {
+          removeSkillHooks(skillName)
+          verbose(`Removed hooks for skill: ${skillName}`)
         }
 
         if (options?.json) {

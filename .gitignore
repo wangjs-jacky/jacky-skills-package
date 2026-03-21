@@ -50,6 +50,13 @@ openspec/
 
 # Global skill storage (user-specific)
 .j-skills/
+
+# Task memory (local development)
+.task-memory/
+
+# Harness (local development)
+.harness/
+
 # Playwright
 playwright-report/
 test-results/

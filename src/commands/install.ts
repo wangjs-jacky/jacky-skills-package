@@ -23,6 +23,10 @@ import {
   getAllowedEnvironments,
   type Environment,
 } from '../lib/environments.js'
+import {
+  hasSkillHooks,
+  mergeSkillHooks,
+} from '../lib/hooks.js'
 import { success, error, info, warn, verbose } from '../lib/log.js'
 import { setVerboseMode } from '../lib/log.js'
 import { isCancel } from '@clack/prompts'
@@ -222,6 +226,14 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
             source: isGlobal ? 'global' : found.source,
             installedEnvironments: targetEnvs,
           })
+        }
+
+        // 处理 hooks（仅在安装到 claude-code 时）
+        if (targetEnvs.includes('claude-code') && hasSkillHooks(found.path)) {
+          const hooksMerged = mergeSkillHooks(found.path, skillName)
+          if (hooksMerged) {
+            verbose(`Merged hooks for skill: ${skillName}`)
+          }
         }
 
         s.stop('Installed successfully!')
