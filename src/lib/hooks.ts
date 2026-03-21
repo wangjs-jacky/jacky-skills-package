@@ -26,7 +26,7 @@ export interface HookConfig {
  * Hook 匹配器配置
  */
 export interface HookMatcher {
-  matcher?: string
+  matcher?: string | null
   hooks: HookConfig[]
 }
 
@@ -135,6 +135,13 @@ function resolveHookVariables(command: string, skillPath: string): string {
 }
 
 /**
+ * 归一化 matcher：null/undefined 视为空 matcher
+ */
+function normalizeMatcher(matcher: string | null | undefined): string {
+  return matcher ?? ''
+}
+
+/**
  * 合并 skill hooks 到 settings.json
  * @param skillPath skill 路径
  * @param skillName skill 名称
@@ -173,11 +180,15 @@ export function mergeSkillHooks(skillPath: string, skillName: string): boolean {
       }))
 
       // 查找是否已有相同 matcher 的配置
+      const incomingMatcher = normalizeMatcher(matcher.matcher)
       const existingMatcher = settings.hooks[hookType].find(
-        (m) => m.matcher === (matcher.matcher || '')
+        (m) => normalizeMatcher(m.matcher) === incomingMatcher
       )
 
       if (existingMatcher) {
+        // 统一 matcher 表达，避免 null/undefined 与空字符串混用
+        existingMatcher.matcher = incomingMatcher
+
         // 合并 hooks（避免重复）
         for (const resolvedHook of resolvedHooks) {
           const exists = existingMatcher.hooks.some(
@@ -190,7 +201,7 @@ export function mergeSkillHooks(skillPath: string, skillName: string): boolean {
       } else {
         // 添加新的 matcher 配置
         settings.hooks[hookType].push({
-          matcher: matcher.matcher || '',
+          matcher: incomingMatcher,
           hooks: resolvedHooks,
         })
       }

@@ -1717,6 +1717,7 @@ dependencies = [
  "dirs 5.0.1",
  "log",
  "notify",
+ "regex",
  "serde",
  "serde_json",
  "tauri",

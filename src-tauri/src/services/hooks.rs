@@ -4,6 +4,7 @@
 use crate::utils::paths::get_claude_settings_path;
 use crate::Result;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -33,13 +34,6 @@ pub struct SkillHooksJson {
     pub hooks: HooksConfig,
 }
 
-/// Settings.json 结构
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClaudeSettings {
-    #[serde(default)]
-    pub hooks: Option<HooksConfig>,
-}
-
 /// 获取 skill 标识符（用于 command 注释）
 fn get_skill_marker(skill_name: &str) -> String {
     format!("# skill: {}", skill_name)
@@ -50,21 +44,21 @@ fn is_command_from_skill(command: &str, skill_name: &str) -> bool {
     command.contains(&get_skill_marker(skill_name))
 }
 
-/// 读取 settings.json
-fn read_claude_settings() -> Result<ClaudeSettings> {
+/// 读取 settings.json 为通用 JSON Value（保留所有字段）
+fn read_claude_settings_json() -> Result<Value> {
     let settings_path = get_claude_settings_path()?;
 
     if !settings_path.exists() {
-        return Ok(ClaudeSettings { hooks: None });
+        return Ok(serde_json::json!({}));
     }
 
     let content = fs::read_to_string(&settings_path)?;
-    let settings: ClaudeSettings = serde_json::from_str(&content)?;
+    let settings: Value = serde_json::from_str(&content)?;
     Ok(settings)
 }
 
-/// 写入 settings.json
-fn write_claude_settings(settings: &ClaudeSettings) -> Result<()> {
+/// 写入 settings.json（保留所有字段）
+fn write_claude_settings_json(settings: &Value) -> Result<()> {
     let settings_path = get_claude_settings_path()?;
 
     // 确保目录存在
@@ -77,6 +71,18 @@ fn write_claude_settings(settings: &ClaudeSettings) -> Result<()> {
     let content = serde_json::to_string_pretty(settings)?;
     fs::write(&settings_path, content)?;
     Ok(())
+}
+
+/// 从 JSON Value 中获取 hooks 配置
+fn get_hooks_from_value(value: &Value) -> Option<HooksConfig> {
+    value.get("hooks").and_then(|h| serde_json::from_value(h.clone()).ok())
+}
+
+/// 设置 JSON Value 中的 hooks 配置
+fn set_hooks_in_value(value: &mut Value, hooks: &HooksConfig) {
+    if let Ok(hooks_value) = serde_json::to_value(hooks) {
+        value["hooks"] = hooks_value;
+    }
 }
 
 /// 读取 skill 的 hooks.json
@@ -111,14 +117,12 @@ pub fn merge_skill_hooks(skill_path: &Path, skill_name: &str) -> Result<bool> {
         None => return Ok(false),
     };
 
-    let mut settings = read_claude_settings()?;
+    // 读取完整的 settings.json（保留所有字段）
+    let mut settings = read_claude_settings_json()?;
 
-    // 确保 hooks 对象存在
-    if settings.hooks.is_none() {
-        settings.hooks = Some(HashMap::new());
-    }
+    // 获取或创建 hooks 配置
+    let mut hooks: HooksConfig = get_hooks_from_value(&settings).unwrap_or_default();
 
-    let hooks = settings.hooks.as_mut().unwrap();
     let skill_marker = get_skill_marker(skill_name);
 
     // 遍历 skill 的所有 hook 类型
@@ -169,19 +173,22 @@ pub fn merge_skill_hooks(skill_path: &Path, skill_name: &str) -> Result<bool> {
         }
     }
 
-    write_claude_settings(&settings)?;
+    // 更新 settings 中的 hooks（保留其他字段）
+    set_hooks_in_value(&mut settings, &hooks);
+    write_claude_settings_json(&settings)?;
     Ok(true)
 }
 
 /// 从 settings.json 移除 skill hooks
 pub fn remove_skill_hooks(skill_name: &str) -> Result<bool> {
-    let mut settings = read_claude_settings()?;
+    // 读取完整的 settings.json（保留所有字段）
+    let mut settings = read_claude_settings_json()?;
 
-    if settings.hooks.is_none() {
-        return Ok(false);
-    }
+    let mut hooks = match get_hooks_from_value(&settings) {
+        Some(h) => h,
+        None => return Ok(false),
+    };
 
-    let hooks = settings.hooks.as_mut().unwrap();
     let mut removed = false;
 
     // 遍历所有 hook 类型
@@ -214,7 +221,8 @@ pub fn remove_skill_hooks(skill_name: &str) -> Result<bool> {
     }
 
     if removed {
-        write_claude_settings(&settings)?;
+        set_hooks_in_value(&mut settings, &hooks);
+        write_claude_settings_json(&settings)?;
     }
 
     Ok(removed)
@@ -222,12 +230,12 @@ pub fn remove_skill_hooks(skill_name: &str) -> Result<bool> {
 
 /// 检查 settings.json 中是否包含指定 skill 的 hooks
 pub fn has_skill_hooks_in_settings(skill_name: &str) -> bool {
-    let settings = match read_claude_settings() {
+    let settings = match read_claude_settings_json() {
         Ok(s) => s,
         Err(_) => return false,
     };
 
-    if let Some(hooks) = settings.hooks {
+    if let Some(hooks) = get_hooks_from_value(&settings) {
         for matchers in hooks.values() {
             for matcher in matchers {
                 for hook in &matcher.hooks {
@@ -244,10 +252,10 @@ pub fn has_skill_hooks_in_settings(skill_name: &str) -> bool {
 
 /// 列出 settings.json 中所有 skill hooks
 pub fn list_installed_skill_hooks() -> Result<Vec<String>> {
-    let settings = read_claude_settings()?;
+    let settings = read_claude_settings_json()?;
     let mut skills = std::collections::HashSet::new();
 
-    if let Some(hooks) = settings.hooks {
+    if let Some(hooks) = get_hooks_from_value(&settings) {
         let marker_regex = regex::Regex::new(r"# skill: (\S+)").unwrap();
 
         for matchers in hooks.values() {
