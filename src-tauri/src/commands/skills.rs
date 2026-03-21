@@ -9,6 +9,7 @@ use tauri::State;
 use crate::{
     AppConfig, ConfigService, InstallMethod, Registry, SkillInfo, SkillSource, SourceFolder,
     get_home_dir, get_linked_dir,
+    merge_skill_hooks, remove_skill_hooks, has_skill_hooks, has_skill_hooks_in_settings,
 };
 
 pub struct AppState {
@@ -430,6 +431,14 @@ pub async fn install_skill(
         .update_skill_environments(&name, envs.into_iter().collect())
         .map_err(|e| e.to_string())?;
 
+    // 处理 hooks（仅在安装到 claude-code 时）
+    if env == "claude-code" {
+        let skill_path = Path::new(&skill.path);
+        if has_skill_hooks(skill_path) {
+            let _ = merge_skill_hooks(skill_path, &name);
+        }
+    }
+
     Ok(InstallResult {
         name,
         env,
@@ -463,6 +472,11 @@ pub async fn uninstall_skill(
         registry
             .update_skill_environments(&name, envs)
             .map_err(|e| e.to_string())?;
+    }
+
+    // 移除 hooks（仅在从 claude-code 卸载时）
+    if env == "claude-code" && has_skill_hooks_in_settings(&name) {
+        let _ = remove_skill_hooks(&name);
     }
 
     Ok(UninstallResult {

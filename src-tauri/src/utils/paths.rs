@@ -47,3 +47,9 @@ pub fn ensure_linked_dir() -> Result<()> {
     }
     Ok(())
 }
+
+/// 获取 Claude Code settings.json 路径
+pub fn get_claude_settings_path() -> Result<PathBuf> {
+    let home = get_home_dir()?;
+    Ok(home.join(".claude").join("settings.json"))
+}
