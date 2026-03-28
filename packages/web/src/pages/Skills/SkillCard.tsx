@@ -1,18 +1,13 @@
-import { Package, Trash2, Terminal, MousePointer2, Download } from 'lucide-react'
-import type { SkillInfo } from '../../api/client'
+import { Package, Trash2, Terminal, Download } from 'lucide-react'
+import type { SkillInfo, EnvironmentInfo } from '../../api/client'
 
 interface SkillCardProps {
   skill: SkillInfo
+  environments: EnvironmentInfo[]
   onUnlink: (name: string) => void
   onToggleEnv: (name: string, env: string, enable: boolean) => void
   onExport: (name: string) => void
 }
-
-// 支持的环境列表
-const SUPPORTED_ENVS = [
-  { id: 'claude-code', label: 'Claude Code', icon: Terminal },
-  { id: 'cursor', label: 'Cursor', icon: MousePointer2 },
-]
 
 // 根据技能名生成颜色
 function getSkillColor(name: string): { bg: string; border: string; text: string } {
@@ -25,7 +20,7 @@ function getSkillColor(name: string): { bg: string; border: string; text: string
   return colors[index]
 }
 
-export default function SkillCard({ skill, onUnlink, onToggleEnv, onExport }: SkillCardProps) {
+export default function SkillCard({ skill, environments, onUnlink, onToggleEnv, onExport }: SkillCardProps) {
   const installedEnvs = skill.installedEnvironments || []
   const colorScheme = getSkillColor(skill.name)
 
@@ -112,16 +107,16 @@ export default function SkillCard({ skill, onUnlink, onToggleEnv, onExport }: Sk
         )}
 
         {/* Environment toggles */}
+        {environments.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {SUPPORTED_ENVS.map((env) => {
-            const isInstalled = installedEnvs.includes(env.id)
-            const Icon = env.icon
+          {environments.map((env) => {
+            const isInstalled = installedEnvs.includes(env.name)
 
             return (
               <button
-                key={env.id}
-                data-testid={`skill-env-toggle-${skill.name}-${env.id}`}
-                onClick={() => onToggleEnv(skill.name, env.id, !isInstalled)}
+                key={env.name}
+                data-testid={`skill-env-toggle-${skill.name}-${env.name}`}
+                onClick={() => onToggleEnv(skill.name, env.name, !isInstalled)}
                 className={`
                   relative flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-mono
                   transition-all duration-300 border
@@ -131,7 +126,7 @@ export default function SkillCard({ skill, onUnlink, onToggleEnv, onExport }: Sk
                   }
                 `}
               >
-                <Icon size={14} />
+                <Terminal size={14} />
                 <span>{env.label}</span>
                 {/* Status indicator */}
                 <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] ${
@@ -150,6 +145,7 @@ export default function SkillCard({ skill, onUnlink, onToggleEnv, onExport }: Sk
             )
           })}
         </div>
+        )}
       </div>
 
       {/* Hover corner accent */}

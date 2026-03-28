@@ -1,15 +1,48 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../../stores'
-import { skillsApi } from '../../api/client'
+import { skillsApi, environmentsApi, configApi, type EnvironmentInfo } from '../../api/client'
 import { Sparkles, Package } from 'lucide-react'
 import SkillList from './SkillList'
 
 export default function SkillsPage() {
-  const { skills, setSkills, isLoading, setIsLoading, showToast, updateSkillEnvironments } = useStore()
+  const { skills, setSkills, config, setConfig, isLoading, setIsLoading, showToast, updateSkillEnvironments } = useStore()
+  const [environments, setEnvironments] = useState<EnvironmentInfo[]>([])
 
   useEffect(() => {
     loadSkills()
+    loadEnvironments()
+    // 如果 store 中还没有 config，主动加载
+    if (!config.defaultEnvironments) {
+      loadConfig()
+    }
   }, [])
+
+  async function loadConfig() {
+    try {
+      const response = await configApi.get()
+      if (response.success) {
+        setConfig(response.data)
+      }
+    } catch (err) {
+      // 静默失败，不影响主流程
+    }
+  }
+
+  // 根据 Settings 中配置的 defaultEnvironments 过滤可用环境
+  const activeEnvs = config.defaultEnvironments?.length
+    ? environments.filter((env) => config.defaultEnvironments!.includes(env.name))
+    : environments
+
+  async function loadEnvironments() {
+    try {
+      const response = await environmentsApi.list()
+      if (response.success) {
+        setEnvironments(response.data)
+      }
+    } catch (err) {
+      showToast('Failed to load environments', 'error')
+    }
+  }
 
   async function loadSkills() {
     setIsLoading(true)
@@ -134,7 +167,7 @@ export default function SkillsPage() {
       </div>
 
       {/* Skills grid */}
-      <SkillList skills={skills} onUnlink={handleUnlink} onToggleEnv={handleToggleEnv} onExport={handleExport} />
+      <SkillList skills={skills} environments={activeEnvs} onUnlink={handleUnlink} onToggleEnv={handleToggleEnv} onExport={handleExport} />
     </div>
   )
 }

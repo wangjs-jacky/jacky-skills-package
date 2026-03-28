@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { Search, Package } from 'lucide-react'
 import SkillCard from './SkillCard'
-import type { SkillInfo } from '../../api/client'
+import type { SkillInfo, EnvironmentInfo } from '../../api/client'
 
 interface SkillListProps {
   skills: SkillInfo[]
+  environments: EnvironmentInfo[]
   onUnlink: (name: string) => void
   onToggleEnv: (name: string, env: string, enable: boolean) => void
   onExport: (name: string) => void
 }
 
-export default function SkillList({ skills, onUnlink, onToggleEnv, onExport }: SkillListProps) {
+export default function SkillList({ skills, environments, onUnlink, onToggleEnv, onExport }: SkillListProps) {
   const [search, setSearch] = useState('')
 
   const filteredSkills = skills.filter((skill) =>
@@ -51,7 +52,7 @@ export default function SkillList({ skills, onUnlink, onToggleEnv, onExport }: S
             className="animate-fade-in"
             style={{ animationDelay: `${Math.min(index * 0.05, 0.5)}s` }}
           >
-            <SkillCard skill={skill} onUnlink={onUnlink} onToggleEnv={onToggleEnv} onExport={onExport} />
+            <SkillCard skill={skill} environments={environments} onUnlink={onUnlink} onToggleEnv={onToggleEnv} onExport={onExport} />
           </div>
         ))}
       </div>
