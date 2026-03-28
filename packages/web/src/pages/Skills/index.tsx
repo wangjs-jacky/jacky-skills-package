@@ -82,7 +82,7 @@ export default function SkillsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
+      <div data-testid="skills-loading" className="flex flex-col items-center justify-center h-64 gap-4">
         <div className="relative">
           <div className="w-12 h-12 rounded-lg border-2 border-[var(--color-primary)]/30 border-t-[var(--color-primary)] animate-spin"></div>
           <div className="absolute inset-0 bg-[var(--color-primary)]/20 blur-xl rounded-lg"></div>
@@ -95,9 +95,9 @@ export default function SkillsPage() {
   }
 
   return (
-    <div className="relative z-10 animate-fade-in">
+    <div data-testid="skills-page" className="relative z-10 animate-fade-in">
       {/* Header */}
-      <div className="mb-8">
+      <div data-testid="skills-header" className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="relative">
             <Sparkles size={24} className="text-[var(--color-primary)]" />
@@ -115,15 +115,15 @@ export default function SkillsPage() {
       </div>
 
       {/* Stats bar */}
-      <div className="flex items-center gap-6 mb-6 px-4 py-3 rounded-xl bg-white/[0.02] border border-[var(--color-border)]">
-        <div className="flex items-center gap-2">
+      <div data-testid="skills-stats" className="flex items-center gap-6 mb-6 px-4 py-3 rounded-xl bg-white/[0.02] border border-[var(--color-border)]">
+        <div data-testid="skills-stats-total" className="flex items-center gap-2">
           <Package size={16} className="text-[var(--color-primary)]" />
           <span className="text-sm font-mono text-[var(--color-text-muted)]">
             <span className="text-[var(--color-text)]">{skills.length}</span> skills linked
           </span>
         </div>
         <div className="h-4 w-px bg-[var(--color-border)]"></div>
-        <div className="flex items-center gap-2">
+        <div data-testid="skills-stats-installed" className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-[var(--color-primary)] animate-pulse"></div>
           <span className="text-sm font-mono text-[var(--color-text-muted)]">
             <span className="text-[var(--color-primary)]">

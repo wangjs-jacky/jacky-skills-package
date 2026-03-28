@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { FolderOpen, Link, FileText, Code2, FolderSync, Trash2, RefreshCw } from 'lucide-react'
 import { useStore } from '../../stores'
 import { skillsApi, type SourceFolder } from '../../api/client'
+import { pickDirectory } from '../../utils/directoryPicker'
 
 export default function DevelopPage() {
   const { showToast } = useStore()
@@ -44,6 +45,17 @@ export default function DevelopPage() {
     }
   }
 
+  async function handleChooseDirectory() {
+    try {
+      const selectedPath = await pickDirectory()
+      if (selectedPath) {
+        setSkillPath(selectedPath)
+      }
+    } catch (err) {
+      showToast('Failed to open directory picker', 'error')
+    }
+  }
+
   async function handleRemoveFolder(path: string) {
     try {
       const response = await skillsApi.removeSourceFolder(path)
@@ -69,7 +81,7 @@ export default function DevelopPage() {
   }
 
   return (
-    <div className="relative z-10 animate-fade-in">
+    <div data-testid="develop-page" className="relative z-10 animate-fade-in">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
@@ -92,7 +104,7 @@ export default function DevelopPage() {
         {/* Left Column */}
         <div className="space-y-6">
           {/* Batch Link Card */}
-          <div className="glass-card rounded-xl p-6 noise-overlay">
+          <div data-testid="develop-batch-link-card" className="glass-card rounded-xl p-6 noise-overlay">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-dim)] border border-[var(--color-primary)]/30 flex items-center justify-center">
                 <FolderSync size={16} className="text-[var(--color-primary)]" />
@@ -107,6 +119,7 @@ export default function DevelopPage() {
 
             <div className="flex gap-3">
               <input
+                data-testid="develop-skill-path-input"
                 type="text"
                 placeholder="/path/to/skills/directory"
                 value={skillPath}
@@ -117,6 +130,17 @@ export default function DevelopPage() {
                            transition-all duration-300"
               />
               <button
+                data-testid="develop-choose-directory-btn"
+                onClick={handleChooseDirectory}
+                className="px-4 py-3 rounded-xl font-mono text-sm font-medium
+                           bg-white/[0.06] text-[var(--color-text)]
+                           border border-[var(--color-border)]
+                           hover:bg-white/[0.1] transition-all duration-300"
+              >
+                Choose Directory
+              </button>
+              <button
+                data-testid="develop-link-all-btn"
                 onClick={handleLink}
                 className="group relative px-5 py-3 rounded-xl font-mono text-sm font-medium
                            bg-[var(--color-primary)] text-black
@@ -129,7 +153,7 @@ export default function DevelopPage() {
           </div>
 
           {/* Source Folders Card */}
-          <div className="glass-card rounded-xl p-6 noise-overlay">
+          <div data-testid="develop-source-folders-card" className="glass-card rounded-xl p-6 noise-overlay">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-[var(--color-amber-dim)] border border-[var(--color-amber)]/30 flex items-center justify-center">
@@ -140,6 +164,7 @@ export default function DevelopPage() {
                 </h3>
               </div>
               <button
+                data-testid="develop-refresh-folders-btn"
                 onClick={loadSourceFolders}
                 className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-white/[0.04] transition-all"
                 title="Refresh"

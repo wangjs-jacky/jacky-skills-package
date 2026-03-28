@@ -32,6 +32,11 @@ import { setVerboseMode } from '../lib/log.js'
 import { isCancel } from '@clack/prompts'
 
 /**
+ * 默认安装环境（当使用 -y 但未指定 --env 时）
+ */
+const DEFAULT_ENVS: Environment[] = ['claude-code', 'cursor', 'opencode', 'codex']
+
+/**
  * 查找 skill（先 linked，后 global）
  */
 export function findSkill(name: string): { path: string; source: 'linked' | 'global' } | null {
@@ -94,12 +99,14 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
     .command('install [skill]', 'Install a skill to project or globally')
     .option('-g, --global', 'Install globally')
     .option('-e, --env <environments>', 'Target environments (comma-separated)')
+    .option('-y, --yes', 'Skip confirmation prompts and use default environments')
+    .option('--all-env', 'Install to all supported environments')
     .option('--verbose', 'Show detailed logs')
     .option('--json', 'Output as JSON')
     .action(
       async (
         skillName?: string,
-        options?: { global?: boolean; env?: string; verbose?: boolean; json?: boolean }
+        options?: { global?: boolean; env?: string; yes?: boolean; allEnv?: boolean; verbose?: boolean; json?: boolean }
       ) => {
         ensureGlobalDir()
 
@@ -108,6 +115,8 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
         }
 
         const isGlobal = options?.global || false
+        const isYes = options?.yes || false
+        const isAllEnv = options?.allEnv || false
 
         // 如果没有指定 skill 名称，显示帮助
         if (!skillName) {
@@ -121,7 +130,9 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
           info('Usage: j-skills install <skill-name>')
           info('Options:')
           console.log('  -g, --global    Install globally')
-          console.log('  -e, --env       Target environments (claude-code,cursor,opencode)')
+          console.log('  -e, --env       Target environments (comma-separated)')
+          console.log('  -y, --yes       Skip prompts, use default environments')
+          console.log('  --all-env       Install to all supported environments')
           return
         }
 
@@ -153,6 +164,14 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
             error('No valid environments specified.')
             process.exit(1)
           }
+        } else if (isAllEnv) {
+          // 安装到所有环境
+          targetEnvs = DEFAULT_ENVS
+          verbose(`Installing to all environments: ${targetEnvs.join(', ')}`)
+        } else if (isYes) {
+          // 使用默认环境（跳过交互式选择）
+          targetEnvs = DEFAULT_ENVS
+          verbose(`Using default environments: ${targetEnvs.join(', ')}`)
         } else {
           // 交互式多选
           const scopeText = isGlobal ? '(global)' : '(project)'

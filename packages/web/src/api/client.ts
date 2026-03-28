@@ -1,8 +1,11 @@
 import ky from 'ky'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke, isTauri as isOfficialTauri } from '@tauri-apps/api/core'
 
-// 动态检测是否在 Tauri 环境中
-function isTauriEnv(): boolean {
+export type ApiTransport = 'tauri' | 'http'
+
+let hasWarnedAboutHttpFallback = false
+
+function hasTauriGlobals(): boolean {
   if (typeof window === 'undefined') {
     return false
   }
@@ -13,6 +16,44 @@ function isTauriEnv(): boolean {
   }
 
   return Boolean(runtime.__TAURI__ || runtime.__TAURI_INTERNALS__)
+}
+
+function shouldWarnAboutHttpFallback(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  const protocol = window.location?.protocol
+  return protocol !== 'http:' && protocol !== 'https:'
+}
+
+export function getApiTransport(): ApiTransport {
+  if (typeof window === 'undefined') {
+    return 'http'
+  }
+
+  if (isOfficialTauri() || hasTauriGlobals()) {
+    return 'tauri'
+  }
+
+  if (!hasWarnedAboutHttpFallback && shouldWarnAboutHttpFallback()) {
+    hasWarnedAboutHttpFallback = true
+    console.warn(
+      '[j-skills api] 当前未识别到 Tauri 运行时，已回退到 HTTP /api。若这是打包后的桌面应用，请打开 WebView DevTools，检查环境检测或前端构建产物是否异常。',
+      {
+        protocol: window.location?.protocol,
+        host: window.location?.host,
+        hasTauriGlobals: hasTauriGlobals(),
+      },
+    )
+  }
+
+  return 'http'
+}
+
+// 动态检测是否在 Tauri 环境中
+function isTauriEnv(): boolean {
+  return getApiTransport() === 'tauri'
 }
 
 const api = ky.create({
@@ -90,8 +131,9 @@ async function safeTauriInvoke<T>(cmd: string, args?: Record<string, unknown>): 
     const result = await invoke<T>(cmd, args)
     return tauriResponse(result)
   } catch (err) {
-    console.error(`Tauri command ${cmd} failed:`, err)
-    return tauriError<T>(String(err))
+    const message = `Tauri command ${cmd} failed: ${String(err)}`
+    console.error(message, err)
+    return tauriError<T>(message)
   }
 }
 

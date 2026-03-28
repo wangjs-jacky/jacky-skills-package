@@ -18,15 +18,16 @@ export default function SkillList({ skills, onUnlink, onToggleEnv, onExport }: S
   )
 
   return (
-    <div>
+    <div data-testid="skills-list">
       {/* Search bar */}
-      <div className="mb-6">
+      <div data-testid="skills-search-wrapper" className="mb-6">
         <div className="relative group">
           <Search
             size={18}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-primary)] transition-colors"
           />
           <input
+            data-testid="skills-search-input"
             type="text"
             placeholder="Search skills..."
             value={search}
@@ -43,7 +44,7 @@ export default function SkillList({ skills, onUnlink, onToggleEnv, onExport }: S
       </div>
 
       {/* Skills grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div data-testid="skills-grid" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {filteredSkills.map((skill, index) => (
           <div
             key={skill.name}
@@ -57,7 +58,7 @@ export default function SkillList({ skills, onUnlink, onToggleEnv, onExport }: S
 
       {/* Empty state */}
       {filteredSkills.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div data-testid="skills-empty-state" className="flex flex-col items-center justify-center py-16 text-center">
           <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-[var(--color-border)] flex items-center justify-center mb-4">
             <Package size={28} className="text-[var(--color-text-muted)]" />
           </div>

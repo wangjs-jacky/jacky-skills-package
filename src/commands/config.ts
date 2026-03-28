@@ -80,6 +80,9 @@ export function registerConfigCommand(cli: ReturnType<typeof cac>): void {
       // 特殊处理 registry
       if (key === 'registry') {
         config.registry = value
+      } else if (key === 'defaultEnvironments') {
+        // 确保始终以数组格式存储
+        config[key] = value.split(',').map((s: string) => s.trim()).filter(Boolean)
       } else {
         config[key] = value
       }

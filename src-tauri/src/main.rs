@@ -2,14 +2,24 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use j_skills_lib::{AppState, Registry};
+use tauri::Manager;
 
 fn main() {
     let registry = Registry::load().expect("Failed to load registry");
 
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .manage(AppState {
             registry: std::sync::Mutex::new(registry),
         })
+        .plugin(tauri_plugin_dialog::init());
+
+    // E2E 测试 WebDriver 插件（仅 debug 构建）
+    #[cfg(debug_assertions)]
+    {
+        builder = builder.plugin(tauri_plugin_webdriver_automation::init());
+    }
+
+    builder
         .invoke_handler(tauri::generate_handler![
             j_skills_lib::commands::list_skills,
             j_skills_lib::commands::get_skill,
@@ -28,6 +38,7 @@ fn main() {
             j_skills_lib::commands::update_config,
             j_skills_lib::commands::update_config_field,
         ])
+        
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -36,6 +47,13 @@ fn main() {
                         .build(),
                 )?;
             }
+
+            // 通过环境变量控制是否打开 DevTools（调试用）
+            if std::env::var("J_SKILLS_DEVTOOLS").is_ok() {
+                let window = app.get_webview_window("main").unwrap();
+                window.open_devtools();
+            }
+
             Ok(())
         })
         .run(tauri::generate_context!())

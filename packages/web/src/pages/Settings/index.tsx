@@ -63,7 +63,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="relative z-10 animate-fade-in">
+    <div data-testid="settings-page" className="relative z-10 animate-fade-in">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
@@ -97,6 +97,7 @@ export default function SettingsPage() {
             return (
               <button
                 key={env.name}
+                data-testid={`settings-env-toggle-${env.name}`}
                 onClick={() => toggleEnv(env.name)}
                 className={`
                   relative group flex items-center gap-3 px-4 py-3 rounded-xl
@@ -141,6 +142,7 @@ export default function SettingsPage() {
         <div className="grid grid-cols-2 gap-3">
           {/* Copy 选项 */}
           <button
+            data-testid="settings-install-method-copy"
             onClick={() => setInstallMethod('copy')}
             className={`
               relative group flex flex-col items-start gap-2 px-4 py-4 rounded-xl
@@ -166,6 +168,7 @@ export default function SettingsPage() {
 
           {/* Symlink 选项 */}
           <button
+            data-testid="settings-install-method-symlink"
             onClick={() => setInstallMethod('symlink')}
             className={`
               relative group flex flex-col items-start gap-2 px-4 py-4 rounded-xl
@@ -193,6 +196,7 @@ export default function SettingsPage() {
 
       {/* Save Button */}
       <button
+        data-testid="settings-save-btn"
         onClick={saveConfig}
         className="group relative px-6 py-3 rounded-xl font-mono text-sm font-medium
                    bg-[var(--color-primary)] text-black

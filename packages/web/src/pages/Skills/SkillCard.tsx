@@ -30,7 +30,7 @@ export default function SkillCard({ skill, onUnlink, onToggleEnv, onExport }: Sk
   const colorScheme = getSkillColor(skill.name)
 
   return (
-    <div className="group relative glass-card rounded-xl overflow-hidden transition-all duration-300 hover:border-white/10 noise-overlay">
+    <div data-testid={`skill-card-${skill.name}`} className="group relative glass-card rounded-xl overflow-hidden transition-all duration-300 hover:border-white/10 noise-overlay">
       {/* Gradient accent line */}
       <div
         className="absolute top-0 left-0 right-0 h-[2px]"
@@ -78,6 +78,7 @@ export default function SkillCard({ skill, onUnlink, onToggleEnv, onExport }: Sk
           {/* Actions */}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
+              data-testid={`skill-export-btn-${skill.name}`}
               onClick={() => onExport(skill.name)}
               className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-blue)] hover:bg-[var(--color-blue-dim)] transition-all duration-200"
               title="Export"
@@ -85,6 +86,7 @@ export default function SkillCard({ skill, onUnlink, onToggleEnv, onExport }: Sk
               <Download size={16} />
             </button>
             <button
+              data-testid={`skill-unlink-btn-${skill.name}`}
               onClick={() => onUnlink(skill.name)}
               className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-red)] hover:bg-[var(--color-red-dim)] transition-all duration-200"
               title="Unlink"
@@ -118,6 +120,7 @@ export default function SkillCard({ skill, onUnlink, onToggleEnv, onExport }: Sk
             return (
               <button
                 key={env.id}
+                data-testid={`skill-env-toggle-${skill.name}-${env.id}`}
                 onClick={() => onToggleEnv(skill.name, env.id, !isInstalled)}
                 className={`
                   relative flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-mono
