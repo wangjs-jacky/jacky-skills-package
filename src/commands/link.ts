@@ -3,10 +3,20 @@
  */
 import { cac } from 'cac'
 import * as p from '@clack/prompts'
-import { resolve, basename } from 'path'
-import { existsSync, lstatSync, symlinkSync, unlinkSync, readdirSync } from 'fs'
+import { resolve, basename, dirname } from 'path'
+import { existsSync, lstatSync, readlinkSync, symlinkSync, unlinkSync, readdirSync } from 'fs'
 import { getLinkedDir, ensureGlobalDir } from '../lib/paths.js'
-import { registerSkill, unregisterSkill, getSkill, listSkills } from '../lib/registry.js'
+import {
+  registerSkill,
+  unregisterSkill,
+  getSkill,
+  listSkills,
+  updateSkillPath,
+  addSourceFolder,
+  getSourceFolder,
+  updateSourceFolder,
+  listSourceFolders,
+} from '../lib/registry.js'
 import { success, error, info, warn } from '../lib/log.js'
 import { isCancel } from '@clack/prompts'
 
@@ -19,6 +29,8 @@ interface LinkOptions {
   json?: boolean
   yes?: boolean  // 跳过交互确认
   all?: boolean  // 批量链接
+  doctor?: boolean  // 断链诊断与修复
+  force?: boolean  // 强制清理，跳过 symlink 存在性检查
 }
 
 /**
@@ -94,8 +106,27 @@ async function linkSingleSkill(
       name: skillName,
       path: targetPath,
       source: 'linked' as const,
+      sourceFolder: dirname(targetPath),
     }
     registerSkill(skillData)
+
+    // 记录 sourceFolder
+    const parentDir = dirname(targetPath)
+    const existingFolder = getSourceFolder(parentDir)
+    if (existingFolder) {
+      const names = new Set([...existingFolder.skillNames, skillName])
+      updateSourceFolder(parentDir, {
+        skillNames: [...names],
+        lastScanned: new Date().toISOString(),
+      })
+    } else {
+      addSourceFolder({
+        path: parentDir,
+        addedAt: new Date().toISOString(),
+        lastScanned: new Date().toISOString(),
+        skillNames: [skillName],
+      })
+    }
 
     return { success: true, name: skillName }
   } catch (err) {
@@ -123,6 +154,71 @@ function scanSkillDirs(baseDir: string): string[] {
 }
 
 /**
+ * 软链接健康状态
+ */
+export type LinkHealth = 'healthy' | 'broken' | 'missing' | 'not-symlink'
+
+/**
+ * 检查单个软链接的健康状态
+ */
+export function checkLinkHealth(linkPath: string): LinkHealth {
+  try {
+    const stat = lstatSync(linkPath, { throwIfNoEntry: false })
+    if (!stat) return 'missing'
+    if (!stat.isSymbolicLink()) return 'not-symlink'
+
+    const target = readlinkSync(linkPath)
+    // 跟随链接判断目标是否存在
+    return existsSync(linkPath) ? 'healthy' : 'broken'
+  } catch {
+    return 'missing'
+  }
+}
+
+/**
+ * 诊断结果条目
+ */
+export interface DiagnoseResult {
+  name: string
+  linkPath: string
+  targetPath: string
+  health: LinkHealth
+}
+
+/**
+ * 遍历所有 linked skills，返回健康诊断列表
+ */
+export function diagnoseAllLinks(): DiagnoseResult[] {
+  const skills = listSkills({ source: 'linked' })
+  const linkedDir = getLinkedDir()
+
+  return skills.map(skill => {
+    const linkPath = resolve(linkedDir, skill.name)
+    return {
+      name: skill.name,
+      linkPath,
+      targetPath: skill.path,
+      health: checkLinkHealth(linkPath),
+    }
+  })
+}
+
+/**
+ * 从 sourceFolders 中按名称精确匹配 skill 目录
+ */
+export function findSkillInSourceFolders(skillName: string): string | null {
+  const folders = listSourceFolders()
+  for (const folder of folders) {
+    if (!existsSync(folder.path)) continue
+    const candidate = resolve(folder.path, skillName)
+    if (isValidSkillDir(candidate)) {
+      return candidate
+    }
+  }
+  return null
+}
+
+/**
  * 注册 link 命令
  */
 export function registerLinkCommand(cli: ReturnType<typeof cac>): void {
@@ -133,9 +229,125 @@ export function registerLinkCommand(cli: ReturnType<typeof cac>): void {
     .option('--json', 'Output as JSON')
     .option('-y, --yes', 'Skip confirmation prompts')
     .option('--all', 'Link all skills in current directory')
+    .option('--doctor', 'Diagnose and fix broken symlinks')
+    .option('--force', 'Force cleanup even if symlink is missing')
     .action(async (skillPath?: string, options?: LinkOptions) => {
       options = options || {}
       ensureGlobalDir()
+
+      // 断链诊断与修复
+      if (options?.doctor) {
+        const results = diagnoseAllLinks()
+
+        if (results.length === 0) {
+          if (options?.json) {
+            console.log(JSON.stringify({ healthy: [], broken: [], total: 0 }))
+            return
+          }
+          info('No skills linked yet.')
+          return
+        }
+
+        const broken = results.filter(r => r.health === 'broken')
+        const healthy = results.filter(r => r.health === 'healthy')
+        const abnormal = results.filter(r => r.health !== 'healthy' && r.health !== 'broken')
+
+        if (options?.json) {
+          console.log(JSON.stringify({
+            healthy: healthy.map(r => r.name),
+            broken: broken.map(r => ({ name: r.name, linkPath: r.linkPath, targetPath: r.targetPath })),
+            abnormal: abnormal.map(r => ({ name: r.name, health: r.health })),
+            total: results.length,
+          }, null, 2))
+          if (broken.length > 0) process.exit(1)
+          return
+        }
+
+        p.intro('Link Health Check')
+
+        for (const r of results) {
+          if (r.health === 'healthy') {
+            console.log(`  \x1b[32m✓\x1b[0m ${r.name} → ${r.targetPath}`)
+          } else if (r.health === 'broken') {
+            console.log(`  \x1b[31m✗\x1b[0m ${r.name} → ${r.targetPath} (\x1b[31mbroken\x1b[0m)`)
+          } else {
+            console.log(`  \x1b[33m?\x1b[0m ${r.name} (${r.health})`)
+          }
+        }
+
+        if (broken.length === 0 && abnormal.length === 0) {
+          success(`All ${results.length} link(s) are healthy.`)
+          return
+        }
+
+        console.log('')
+        const unfixable: DiagnoseResult[] = []
+
+        if (broken.length > 0) {
+          warn(`Found ${broken.length} broken link(s).`)
+
+          // 尝试自动修复
+          const shouldFix = await p.confirm({
+            message: 'Attempt to auto-fix broken links?',
+            initialValue: true,
+          })
+
+          if (isCancel(shouldFix) || !shouldFix) {
+            // 跳过修复，全部 broken 视为 unfixable
+            unfixable.push(...broken)
+          } else {
+            let fixed = 0
+            for (const item of broken) {
+              const newPath = findSkillInSourceFolders(item.name)
+              if (newPath) {
+                // 重建软链接
+                createSymlink(newPath, item.linkPath)
+                updateSkillPath(item.name, newPath)
+                success(`Fixed: ${item.name} → ${newPath}`)
+                fixed++
+              } else {
+                error(`Cannot find "${item.name}" in any source folder.`)
+                unfixable.push(item)
+              }
+            }
+
+            console.log(`\nFixed: ${fixed} / ${broken.length}`)
+          }
+        }
+
+        // abnormal（missing/not-symlink）全部视为 unfixable
+        if (abnormal.length > 0) {
+          unfixable.push(...abnormal)
+        }
+
+        // 统一处理 unfixable 条目
+        if (unfixable.length > 0) {
+          console.log('')
+          warn(`Found ${unfixable.length} unfixable link(s):`)
+          for (const item of unfixable) {
+            console.log(`  \x1b[31m✗\x1b[0m ${item.name} (${item.health})`)
+          }
+
+          const shouldRemove = await p.confirm({
+            message: `Remove ${unfixable.length} unfixable entry/entries from registry?`,
+            initialValue: true,
+          })
+
+          if (shouldRemove && !isCancel(shouldRemove)) {
+            let removed = 0
+            for (const item of unfixable) {
+              // 尝试删除 symlink（如有）
+              try { unlinkSync(item.linkPath) } catch {}
+              // 从注册表移除
+              unregisterSkill(item.name)
+              removed++
+            }
+            success(`Removed ${removed} unfixable entry/entries.`)
+          }
+        }
+
+        return
+      }
 
       // 列出已链接的 skills
       if (options?.list) {
@@ -150,13 +362,18 @@ export function registerLinkCommand(cli: ReturnType<typeof cac>): void {
         }
 
         if (options?.json) {
+          const linkedDir = getLinkedDir()
           const result = {
-            skills: skills.map(skill => ({
-              name: skill.name,
-              path: skill.path,
-              source: skill.source,
-              installedAt: skill.installedAt,
-            })),
+            skills: skills.map(skill => {
+              const linkPath = resolve(linkedDir, skill.name)
+              return {
+                name: skill.name,
+                path: skill.path,
+                source: skill.source,
+                installedAt: skill.installedAt,
+                health: checkLinkHealth(linkPath),
+              }
+            }),
           }
           console.log(JSON.stringify(result, null, 2))
           return
@@ -164,7 +381,17 @@ export function registerLinkCommand(cli: ReturnType<typeof cac>): void {
 
         p.intro('Linked Skills')
         for (const skill of skills) {
-          console.log(`  ${skill.name} → ${skill.path}`)
+          const linkPath = resolve(getLinkedDir(), skill.name)
+          const health = checkLinkHealth(linkPath)
+          let icon: string
+          if (health === 'healthy') {
+            icon = '\x1b[32m✓\x1b[0m'
+          } else if (health === 'broken') {
+            icon = '\x1b[31m✗\x1b[0m'
+          } else {
+            icon = '\x1b[33m?\x1b[0m'
+          }
+          console.log(`  ${icon} ${skill.name} → ${skill.path}`)
         }
         return
       }
@@ -175,7 +402,8 @@ export function registerLinkCommand(cli: ReturnType<typeof cac>): void {
         const linkedDir = getLinkedDir()
         const linkPath = resolve(linkedDir, skillName)
 
-        if (!existsSync(linkPath)) {
+        // 非 force 模式：symlink 不存在时报错退出
+        if (!options?.force && !existsSync(linkPath)) {
           if (options?.json) {
             console.log(JSON.stringify({ success: false, error: `Skill "${skillName}" is not linked.` }))
             return
@@ -187,8 +415,9 @@ export function registerLinkCommand(cli: ReturnType<typeof cac>): void {
         // 获取 skill 信息（用于 JSON 输出）
         const skillBeforeUnlink = getSkill(skillName)
 
-        // 删除符号链接
-        unlinkSync(linkPath)
+        // 尝试删除 symlink（broken 的也能删，不存在时忽略）
+        try { unlinkSync(linkPath) } catch {}
+
         // 从注册表移除
         unregisterSkill(skillName)
 
