@@ -16,7 +16,7 @@ import { registerConfigCommand } from './commands/config.js'
 import { registerProfileCommand } from './commands/profile.js'
 
 // 版本号
-const VERSION = '0.3.0'
+const VERSION = '0.3.1'
 
 // 创建 CLI 实例
 const cli = cac('j-skills')
