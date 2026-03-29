@@ -20,6 +20,8 @@ vi.mock('../../../packages/web/src/stores', () => ({
     setIsLoading: setIsLoadingMock,
     showToast: showToastMock,
     updateSkillEnvironments: updateSkillEnvironmentsMock,
+    config: {},
+    setConfig: vi.fn(),
   }),
 }))
 
@@ -38,6 +40,12 @@ vi.mock('../../../packages/web/src/api/client', () => ({
     uninstall: uninstallMock,
     export: exportMock,
   },
+  environmentsApi: {
+    list: vi.fn().mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } }),
+  },
+  configApi: {
+    get: vi.fn().mockResolvedValue({ success: true, data: {} }),
+  },
 }))
 
 describe('T-S4 导出 Skill', () => {
@@ -53,7 +61,7 @@ describe('T-S4 导出 Skill', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSkills = [mockSkill]
-    listMock.mockResolvedValue({ success: true, data: [mockSkill] })
+    listMock.mockResolvedValue({ success: true, data: { skills: [mockSkill], cleanedCount: 0 } })
   })
 
   /**

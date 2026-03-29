@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../../stores'
-import { configApi, environmentsApi, type EnvironmentInfo, type ConfigInfo } from '../../api/client'
+import { configApi, environmentsApi, type EnvironmentInfo } from '../../api/client'
 import { Settings, Check, Terminal, Cpu, Copy, Link } from 'lucide-react'
 
 export default function SettingsPage() {
@@ -38,12 +38,12 @@ export default function SettingsPage() {
     }
   }
 
-  async function saveConfig() {
+  async function saveConfig(newEnvs: string[], newMethod: 'copy' | 'symlink') {
     try {
       const response = await configApi.update({
         ...config,
-        defaultEnvironments: selectedEnvs,
-        installMethod,
+        defaultEnvironments: newEnvs,
+        installMethod: newMethod,
       })
       if (response.success) {
         setConfig(response.data)
@@ -55,11 +55,18 @@ export default function SettingsPage() {
   }
 
   function toggleEnv(envName: string) {
-    setSelectedEnvs((prev) =>
-      prev.includes(envName)
+    setSelectedEnvs((prev) => {
+      const next = prev.includes(envName)
         ? prev.filter((e) => e !== envName)
         : [...prev, envName]
-    )
+      saveConfig(next, installMethod)
+      return next
+    })
+  }
+
+  function changeInstallMethod(method: 'copy' | 'symlink') {
+    setInstallMethod(method)
+    saveConfig(selectedEnvs, method)
   }
 
   return (
@@ -143,7 +150,7 @@ export default function SettingsPage() {
           {/* Copy 选项 */}
           <button
             data-testid="settings-install-method-copy"
-            onClick={() => setInstallMethod('copy')}
+            onClick={() => changeInstallMethod('copy')}
             className={`
               relative group flex flex-col items-start gap-2 px-4 py-4 rounded-xl
               border transition-all duration-300 text-left
@@ -169,7 +176,7 @@ export default function SettingsPage() {
           {/* Symlink 选项 */}
           <button
             data-testid="settings-install-method-symlink"
-            onClick={() => setInstallMethod('symlink')}
+            onClick={() => changeInstallMethod('symlink')}
             className={`
               relative group flex flex-col items-start gap-2 px-4 py-4 rounded-xl
               border transition-all duration-300 text-left
@@ -193,18 +200,6 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
-
-      {/* Save Button */}
-      <button
-        data-testid="settings-save-btn"
-        onClick={saveConfig}
-        className="group relative px-6 py-3 rounded-xl font-mono text-sm font-medium
-                   bg-[var(--color-primary)] text-black
-                   hover:shadow-[0_0_30px_var(--color-primary-glow)]
-                   transition-all duration-300 btn-glow"
-      >
-        <span className="relative z-10">Save Settings</span>
-      </button>
     </div>
   )
 }

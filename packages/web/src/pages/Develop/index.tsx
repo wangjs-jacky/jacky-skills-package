@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FolderOpen, Link, FileText, Code2, FolderSync, Trash2, RefreshCw } from 'lucide-react'
+import { FolderOpen, Link, Code2, FolderSync, Trash2, RefreshCw } from 'lucide-react'
 import { useStore } from '../../stores'
 import { skillsApi, type SourceFolder } from '../../api/client'
 import { pickDirectory } from '../../utils/directoryPicker'
@@ -7,8 +7,6 @@ import { pickDirectory } from '../../utils/directoryPicker'
 export default function DevelopPage() {
   const { showToast } = useStore()
   const [skillPath, setSkillPath] = useState('')
-  const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
-  const [skillContent, setSkillContent] = useState<string>('')
   const [sourceFolders, setSourceFolders] = useState<SourceFolder[]>([])
 
   useEffect(() => {
@@ -68,18 +66,6 @@ export default function DevelopPage() {
     }
   }
 
-  async function loadSkillContent(skillName: string) {
-    try {
-      const response = await skillsApi.getFileContent(skillName, 'SKILL.md')
-      if (response.success) {
-        setSelectedSkill(skillName)
-        setSkillContent(response.data.content)
-      }
-    } catch (err) {
-      showToast('Failed to load skill content', 'error')
-    }
-  }
-
   return (
     <div data-testid="develop-page" className="relative z-10 animate-fade-in">
       {/* Header */}
@@ -100,9 +86,7 @@ export default function DevelopPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column */}
-        <div className="space-y-6">
+      <div className="space-y-6">
           {/* Batch Link Card */}
           <div data-testid="develop-batch-link-card" className="glass-card rounded-xl p-6 noise-overlay">
             <div className="flex items-center gap-3 mb-2">
@@ -227,45 +211,6 @@ export default function DevelopPage() {
             )}
           </div>
         </div>
-
-        {/* Right Column - Preview */}
-        <div className="glass-card rounded-xl p-6 h-fit">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-[var(--color-blue-dim)] border border-[var(--color-blue)]/30 flex items-center justify-center">
-              <FileText size={16} className="text-[var(--color-blue)]" />
-            </div>
-            <h3 className="font-mono font-semibold text-[var(--color-text)]">
-              Preview
-            </h3>
-          </div>
-
-          {selectedSkill ? (
-            <div className="bg-black/30 rounded-lg p-4 border border-[var(--color-border)] max-h-[400px] overflow-auto">
-              <div className="flex items-center gap-2 mb-3 pb-3 border-b border-[var(--color-border)]">
-                <div className="w-2 h-2 rounded-full bg-[var(--color-primary)]"></div>
-                <span className="font-mono text-xs text-[var(--color-primary)]">
-                  {selectedSkill}/SKILL.md
-                </span>
-              </div>
-              <pre className="text-xs font-mono text-[var(--color-text-muted)] whitespace-pre-wrap">
-                {skillContent}
-              </pre>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-[var(--color-border)] flex items-center justify-center mb-4">
-                <FileText size={28} className="text-[var(--color-text-muted)]" />
-              </div>
-              <p className="text-[var(--color-text-muted)] font-mono text-sm">
-                Select a skill to preview
-              </p>
-              <p className="text-[var(--color-text-muted)]/60 font-mono text-xs mt-1">
-                Content will appear here
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   )
 }

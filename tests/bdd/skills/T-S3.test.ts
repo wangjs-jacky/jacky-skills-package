@@ -21,6 +21,8 @@ vi.mock('../../../packages/web/src/stores', () => ({
     setIsLoading: setIsLoadingMock,
     showToast: showToastMock,
     updateSkillEnvironments: updateSkillEnvironmentsMock,
+    config: {},
+    setConfig: vi.fn(),
   }),
 }))
 
@@ -31,6 +33,11 @@ const installMock = vi.fn()
 const uninstallMock = vi.fn()
 const exportMock = vi.fn()
 
+const mockEnvironments = [
+  { name: 'claude-code', label: 'Claude Code', globalPath: '/home/.claude' },
+  { name: 'cursor', label: 'Cursor', globalPath: '/home/.cursor' },
+]
+
 vi.mock('../../../packages/web/src/api/client', () => ({
   skillsApi: {
     list: listMock,
@@ -38,6 +45,12 @@ vi.mock('../../../packages/web/src/api/client', () => ({
     install: installMock,
     uninstall: uninstallMock,
     export: exportMock,
+  },
+  environmentsApi: {
+    list: vi.fn().mockResolvedValue({ success: true, data: mockEnvironments }),
+  },
+  configApi: {
+    get: vi.fn().mockResolvedValue({ success: true, data: {} }),
   },
 }))
 
@@ -61,7 +74,7 @@ describe('T-S3 环境开关安装/卸载', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSkills = [skillWithClaudeCode, skillWithNoEnv]
-    listMock.mockResolvedValue({ success: true, data: mockSkills })
+    listMock.mockResolvedValue({ success: true, data: { skills: mockSkills, cleanedCount: 0 }})
   })
 
   /**
@@ -106,7 +119,7 @@ describe('T-S3 环境开关安装/卸载', () => {
 
   it('API 失败 → Toast 错误信息', async () => {
     mockSkills = [skillWithClaudeCode]
-    listMock.mockResolvedValue({ success: true, data: [skillWithClaudeCode] })
+    listMock.mockResolvedValue({ success: true, data: { skills: [skillWithClaudeCode], cleanedCount: 0 } })
 
     const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
     render(React.createElement(SkillsPage))

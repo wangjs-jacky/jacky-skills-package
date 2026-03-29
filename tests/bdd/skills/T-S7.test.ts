@@ -19,6 +19,8 @@ vi.mock('../../../packages/web/src/stores', () => ({
     setIsLoading: setIsLoadingMock,
     showToast: showToastMock,
     updateSkillEnvironments: updateSkillEnvironmentsMock,
+    config: {},
+    setConfig: vi.fn(),
   }),
 }))
 
@@ -29,6 +31,11 @@ const installMock = vi.fn()
 const uninstallMock = vi.fn()
 const exportMock = vi.fn()
 
+const mockEnvironments = [
+  { name: 'claude-code', label: 'Claude Code', globalPath: '/home/.claude' },
+  { name: 'cursor', label: 'Cursor', globalPath: '/home/.cursor' },
+]
+
 vi.mock('../../../packages/web/src/api/client', () => ({
   skillsApi: {
     list: listMock,
@@ -36,6 +43,12 @@ vi.mock('../../../packages/web/src/api/client', () => ({
     install: installMock,
     uninstall: uninstallMock,
     export: exportMock,
+  },
+  environmentsApi: {
+    list: vi.fn().mockResolvedValue({ success: true, data: mockEnvironments }),
+  },
+  configApi: {
+    get: vi.fn().mockResolvedValue({ success: true, data: {} }),
   },
 }))
 
@@ -58,7 +71,7 @@ describe('T-S7 Skill Card 信息展示', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSkills = [mockSkill, mockSkillNoFolder]
-    listMock.mockResolvedValue({ success: true, data: [mockSkill, mockSkillNoFolder] })
+    listMock.mockResolvedValue({ success: true, data: { skills: [mockSkill, mockSkillNoFolder], cleanedCount: 0 } })
   })
 
   /**

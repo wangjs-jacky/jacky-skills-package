@@ -49,6 +49,13 @@ pub struct UninstallResult {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ListSkillsResult {
+    pub skills: Vec<SkillInfo>,
+    pub cleaned_count: u32,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExportResult {
     pub exported: Vec<String>,
     pub errors: Vec<String>,
@@ -402,9 +409,41 @@ fn env_path(env: &str) -> Result<(String, PathBuf), String> {
 }
 
 #[tauri::command]
-pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, String> {
-    let registry = state.registry.lock().map_err(|e| e.to_string())?;
-    Ok(registry.list_skills())
+pub async fn list_skills(state: State<'_, AppState>) -> Result<ListSkillsResult, String> {
+    let mut registry = state.registry.lock().map_err(|e| e.to_string())?;
+    let all_skills = registry.list_skills();
+
+    let mut valid_skills = Vec::new();
+    let mut cleaned_count = 0u32;
+
+    for skill in all_skills {
+        let path = Path::new(&skill.path);
+        if path.is_dir() {
+            valid_skills.push(skill);
+        } else {
+            // 清理：从环境目录删除安装文件
+            if let Some(ref envs) = skill.installed_environments {
+                for env in envs {
+                    if let Ok((_label, env_dir)) = env_path(env) {
+                        let target = env_dir.join(&skill.name);
+                        let _ = remove_path(&target);
+                    }
+                }
+            }
+            // 清理：移除 hooks
+            if has_skill_hooks_in_settings(&skill.name) {
+                let _ = remove_skill_hooks(&skill.name);
+            }
+            // 清理：从 registry 注销
+            let _ = registry.unregister(&skill.name);
+            cleaned_count += 1;
+        }
+    }
+
+    Ok(ListSkillsResult {
+        skills: valid_skills,
+        cleaned_count,
+    })
 }
 
 #[tauri::command]

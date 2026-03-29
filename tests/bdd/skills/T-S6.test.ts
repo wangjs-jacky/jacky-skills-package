@@ -19,6 +19,8 @@ vi.mock('../../../packages/web/src/stores', () => ({
     setIsLoading: setIsLoadingMock,
     showToast: showToastMock,
     updateSkillEnvironments: updateSkillEnvironmentsMock,
+    config: {},
+    setConfig: vi.fn(),
   }),
 }))
 
@@ -37,13 +39,19 @@ vi.mock('../../../packages/web/src/api/client', () => ({
     uninstall: uninstallMock,
     export: exportMock,
   },
+  environmentsApi: {
+    list: vi.fn().mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } }),
+  },
+  configApi: {
+    get: vi.fn().mockResolvedValue({ success: true, data: {} }),
+  },
 }))
 
 describe('T-S6 空状态', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSkills = []
-    listMock.mockResolvedValue({ success: true, data: [] })
+    listMock.mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } })
   })
 
   /**

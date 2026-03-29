@@ -2,15 +2,13 @@
 import React from 'react'
 import { beforeEach, describe, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { expectElementAsync } from '@wangjs-jacky/tdd-kit'
+import { expectElement, expectElementAsync } from '@wangjs-jacky/tdd-kit'
 
 const pickDirectoryMock = vi.fn()
 const listSourceFoldersMock = vi.fn()
 const showToastMock = vi.fn()
 const removeSourceFolderMock = vi.fn()
 const linkMock = vi.fn()
-const getFileContentMock = vi.fn()
-const getSkillMock = vi.fn()
 
 vi.mock('../../../packages/web/src/utils/directoryPicker', () => ({
   pickDirectory: pickDirectoryMock,
@@ -23,23 +21,26 @@ vi.mock('../../../packages/web/src/api/client', () => ({
     listSourceFolders: listSourceFoldersMock,
     removeSourceFolder: removeSourceFolderMock,
     link: linkMock,
-    getFileContent: getFileContentMock,
-    get: getSkillMock,
   },
 }))
 
-describe('T-D5 Preview 空状态', () => {
+describe('T-D5 Develop 页面无 Preview', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     pickDirectoryMock.mockResolvedValue(null)
     listSourceFoldersMock.mockResolvedValue({ success: true, data: [] })
   })
 
-  it('未选择 skill 时显示提示文案', async () => {
+  it('页面不包含 Preview 区域和 Select a skill to preview 文案', async () => {
     const { default: DevelopPage } = await import('../../../packages/web/src/pages/Develop')
     render(React.createElement(DevelopPage))
 
-    await expectElementAsync(screen, 'develop-page', { text: 'Select a skill to preview' })
-    await expectElementAsync(screen, 'develop-page', { text: 'Content will appear here' })
+    // 确认页面渲染
+    await expectElementAsync(screen, 'develop-page')
+
+    // Preview 区域已删除，不应出现相关文案
+    expect(screen.queryByText('Select a skill to preview')).toBeNull()
+    expect(screen.queryByText('Content will appear here')).toBeNull()
+    expect(screen.queryByText('Preview')).toBeNull()
   })
 })

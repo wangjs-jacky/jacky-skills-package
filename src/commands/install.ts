@@ -39,11 +39,21 @@ const DEFAULT_ENVS: Environment[] = ['claude-code', 'cursor', 'opencode', 'codex
 /**
  * 查找 skill（先 linked，后 global）
  */
-export function findSkill(name: string): { path: string; source: 'linked' | 'global' } | null {
+export function findSkill(name: string): { path: string; source: 'linked' | 'global'; health?: 'broken' } | null {
   // 先查找 linked
   const linkedPath = resolve(getLinkedDir(), name)
   if (existsSync(linkedPath)) {
     return { path: linkedPath, source: 'linked' }
+  }
+
+  // 检查是否为断链的符号链接
+  try {
+    const stat = lstatSync(linkedPath, { throwIfNoEntry: false })
+    if (stat?.isSymbolicLink()) {
+      return { path: linkedPath, source: 'linked', health: 'broken' }
+    }
+  } catch {
+    // 忽略
   }
 
   // 再查找 global
@@ -149,6 +159,21 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
           }
           error(`Skill "${skillName}" not found.`)
           info('Try linking it first: j-skills link /path/to/skill')
+          process.exit(1)
+        }
+
+        // 断链检测
+        if (found.health === 'broken') {
+          if (options?.json) {
+            console.log(JSON.stringify({
+              success: false,
+              error: `Skill "${skillName}" has a broken symlink.`,
+              hint: 'Run `j-skills link --doctor` to fix.',
+            }, null, 2))
+            process.exit(1)
+          }
+          warn(`Skill "${skillName}" 的软链接已断裂。`)
+          info('运行 j-skills link --doctor 修复。')
           process.exit(1)
         }
 

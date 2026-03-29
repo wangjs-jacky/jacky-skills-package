@@ -222,3 +222,16 @@ export function removeSourceFolder(path: string): boolean {
   }
   return false
 }
+
+/**
+ * 更新 skill 的路径（doctor 修复后使用）
+ */
+export function updateSkillPath(name: string, newPath: string): boolean {
+  const registry = readRegistry()
+  if (registry.skills[name]) {
+    registry.skills[name].path = newPath
+    writeRegistry(registry)
+    return true
+  }
+  return false
+}

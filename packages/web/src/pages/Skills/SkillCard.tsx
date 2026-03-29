@@ -1,4 +1,4 @@
-import { Package, Trash2, Terminal, Download } from 'lucide-react'
+import { Package, Trash2, Terminal, Download, Eye } from 'lucide-react'
 import type { SkillInfo, EnvironmentInfo } from '../../api/client'
 
 interface SkillCardProps {
@@ -7,6 +7,7 @@ interface SkillCardProps {
   onUnlink: (name: string) => void
   onToggleEnv: (name: string, env: string, enable: boolean) => void
   onExport: (name: string) => void
+  onViewContent: (name: string) => void
 }
 
 // 根据技能名生成颜色
@@ -20,12 +21,15 @@ function getSkillColor(name: string): { bg: string; border: string; text: string
   return colors[index]
 }
 
-export default function SkillCard({ skill, environments, onUnlink, onToggleEnv, onExport }: SkillCardProps) {
+export default function SkillCard({ skill, environments, onUnlink, onToggleEnv, onExport, onViewContent }: SkillCardProps) {
   const installedEnvs = skill.installedEnvironments || []
   const colorScheme = getSkillColor(skill.name)
 
   return (
-    <div data-testid={`skill-card-${skill.name}`} className="group relative glass-card rounded-xl overflow-hidden transition-all duration-300 hover:border-white/10 noise-overlay">
+    <div
+      data-testid={`skill-card-${skill.name}`}
+      className="group relative glass-card rounded-xl overflow-hidden transition-all duration-300 hover:border-white/10 noise-overlay"
+    >
       {/* Gradient accent line */}
       <div
         className="absolute top-0 left-0 right-0 h-[2px]"
@@ -72,6 +76,14 @@ export default function SkillCard({ skill, environments, onUnlink, onToggleEnv, 
 
           {/* Actions */}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              data-testid={`skill-view-btn-${skill.name}`}
+              onClick={() => onViewContent(skill.name)}
+              className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-amber)] hover:bg-[var(--color-amber-dim)] transition-all duration-200"
+              title="View SKILL.md"
+            >
+              <Eye size={16} />
+            </button>
             <button
               data-testid={`skill-export-btn-${skill.name}`}
               onClick={() => onExport(skill.name)}

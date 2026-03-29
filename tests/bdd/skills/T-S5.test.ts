@@ -20,6 +20,8 @@ vi.mock('../../../packages/web/src/stores', () => ({
     setIsLoading: setIsLoadingMock,
     showToast: showToastMock,
     updateSkillEnvironments: updateSkillEnvironmentsMock,
+    config: {},
+    setConfig: vi.fn(),
   }),
 }))
 
@@ -38,6 +40,12 @@ vi.mock('../../../packages/web/src/api/client', () => ({
     uninstall: uninstallMock,
     export: exportMock,
   },
+  environmentsApi: {
+    list: vi.fn().mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } }),
+  },
+  configApi: {
+    get: vi.fn().mockResolvedValue({ success: true, data: {} }),
+  },
 }))
 
 describe('T-S5 Unlink Skill', () => {
@@ -53,7 +61,7 @@ describe('T-S5 Unlink Skill', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSkills = [mockSkill]
-    listMock.mockResolvedValue({ success: true, data: [mockSkill] })
+    listMock.mockResolvedValue({ success: true, data: { skills: [mockSkill], cleanedCount: 0 } })
   })
 
   /**
@@ -75,7 +83,7 @@ describe('T-S5 Unlink Skill', () => {
     // Step 2: 点击 Unlink → 成功
     unlinkMock.mockResolvedValue({ success: true, data: { name: 'unlink-skill' } })
     // loadSkills 会再次调用 list，mock 返回空列表
-    listMock.mockResolvedValue({ success: true, data: [] })
+    listMock.mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } })
     await user.click(unlinkBtn)
 
     expect(unlinkMock).toHaveBeenCalledWith('unlink-skill')

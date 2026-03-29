@@ -16,6 +16,8 @@ vi.mock('../../../packages/web/src/stores', () => ({
   useStore: () => ({
     skills: mockSkills,
     setSkills: setSkillsMock,
+    config: {},
+    setConfig: vi.fn(),
     isLoading: false,
     setIsLoading: setIsLoadingMock,
     showToast: showToastMock,
@@ -37,6 +39,12 @@ vi.mock('../../../packages/web/src/api/client', () => ({
     install: installMock,
     uninstall: uninstallMock,
     export: exportMock,
+  },
+  environmentsApi: {
+    list: vi.fn().mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } }),
+  },
+  configApi: {
+    get: vi.fn().mockResolvedValue({ success: true, data: {} }),
   },
 }))
 
@@ -67,7 +75,7 @@ describe('T-S2 搜索过滤', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSkills = mockSkillData
-    listMock.mockResolvedValue({ success: true, data: mockSkillData })
+    listMock.mockResolvedValue({ success: true, data: { skills: mockSkillData, cleanedCount: 0 } })
   })
 
   /**

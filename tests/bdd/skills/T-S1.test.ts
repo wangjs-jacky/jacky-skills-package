@@ -22,6 +22,8 @@ vi.mock('../../../packages/web/src/stores', () => ({
     setIsLoading: setIsLoadingMock,
     showToast: showToastMock,
     updateSkillEnvironments: updateSkillEnvironmentsMock,
+    config: {},
+    setConfig: vi.fn(),
   }),
 }))
 
@@ -39,6 +41,12 @@ vi.mock('../../../packages/web/src/api/client', () => ({
     install: installMock,
     uninstall: uninstallMock,
     export: exportMock,
+  },
+  environmentsApi: {
+    list: vi.fn().mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } }),
+  },
+  configApi: {
+    get: vi.fn().mockResolvedValue({ success: true, data: {} }),
   },
 }))
 
@@ -78,7 +86,7 @@ describe('T-S1 列表加载与统计', () => {
    * 我们需要通过手动设置 mockIsLoading + mockSkills 来模拟 loading 完成后的状态
    */
   it('Step 1: 渲染时调用 setIsLoading(true) 和 list API', async () => {
-    listMock.mockResolvedValue({ success: true, data: [] })
+    listMock.mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } })
 
     const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
     render(React.createElement(SkillsPage))
@@ -90,7 +98,7 @@ describe('T-S1 列表加载与统计', () => {
   })
 
   it('Step 2: API 返回空列表 → Stats Bar 显示 "0 skills linked" 和空状态', async () => {
-    listMock.mockResolvedValue({ success: true, data: [] })
+    listMock.mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } })
     mockSkills = []
 
     const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
@@ -105,7 +113,7 @@ describe('T-S1 列表加载与统计', () => {
   it('Step 3: API 返回 3 个 skill → Stats Bar 显示 "3 skills linked" + "2 installed"，列表显示 3 张卡片', async () => {
     // 预设置 skills 数据，组件渲染时直接使用
     mockSkills = mockSkillData
-    listMock.mockResolvedValue({ success: true, data: mockSkillData })
+    listMock.mockResolvedValue({ success: true, data: { skills: mockSkillData, cleanedCount: 0 } })
 
     const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
     render(React.createElement(SkillsPage))

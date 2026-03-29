@@ -10,6 +10,12 @@ vi.mock('../../packages/web/src/api/client', () => ({
   skillsApi: {
     list: listMock,
   },
+  environmentsApi: {
+    list: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  },
+  configApi: {
+    get: vi.fn().mockResolvedValue({ success: true, data: {} }),
+  },
 }))
 
 vi.mock('../../packages/web/src/stores', () => ({
@@ -20,6 +26,8 @@ vi.mock('../../packages/web/src/stores', () => ({
     setIsLoading: vi.fn(),
     showToast: vi.fn(),
     updateSkillEnvironments: vi.fn(),
+    config: {},
+    setConfig: vi.fn(),
   }),
 }))
 

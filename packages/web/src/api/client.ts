@@ -84,6 +84,11 @@ export interface SkillInfo {
   installedAt?: string
 }
 
+export interface ListSkillsResult {
+  skills: SkillInfo[]
+  cleanedCount: number
+}
+
 export interface SourceFolder {
   path: string
   addedAt: string
@@ -139,11 +144,11 @@ async function safeTauriInvoke<T>(cmd: string, args?: Record<string, unknown>): 
 
 // Skills API
 export const skillsApi = {
-  async list(): Promise<ApiResponse<SkillInfo[]>> {
+  async list(): Promise<ApiResponse<ListSkillsResult>> {
     if (isTauriEnv()) {
-      return safeTauriInvoke<SkillInfo[]>('list_skills')
+      return safeTauriInvoke<ListSkillsResult>('list_skills')
     }
-    return api.get('skills').json<ApiResponse<SkillInfo[]>>()
+    return api.get('skills').json<ApiResponse<ListSkillsResult>>()
   },
 
   async get(name: string): Promise<ApiResponse<SkillInfo>> {
