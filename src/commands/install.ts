@@ -4,7 +4,7 @@
 import { cac } from 'cac'
 import * as p from '@clack/prompts'
 import { resolve, basename } from 'path'
-import { existsSync, cpSync, mkdirSync, rmSync, lstatSync } from 'fs'
+import { existsSync, cpSync, mkdirSync, rmSync, lstatSync, unlinkSync } from 'fs'
 import {
   getLinkedDir,
   getGlobalSkillsDir,
@@ -66,6 +66,24 @@ export function findSkill(name: string): { path: string; source: 'linked' | 'glo
 }
 
 /**
+ * 安全删除路径（处理 broken symlink 的场景）
+ * rmSync({ recursive: true, force: true }) 无法删除 broken symlink，
+ * 需要用 unlinkSync 兜底
+ */
+function safeRemovePath(path: string): void {
+  const stat = lstatSync(path, { throwIfNoEntry: false })
+  if (!stat) return
+
+  if (stat.isSymbolicLink()) {
+    // symlink（包括 broken 的）用 unlinkSync 删除
+    unlinkSync(path)
+  } else {
+    // 普通文件/目录用 rmSync
+    rmSync(path, { recursive: true, force: true })
+  }
+}
+
+/**
  * 安装 skill 到指定环境
  * @param skillPath skill 源路径
  * @param env 目标环境
@@ -89,9 +107,9 @@ export function installToEnv(
     mkdirSync(envPath, { recursive: true })
   }
 
-  // 如果目标已存在，先删除（包括符号链接）
-  if (existsSync(targetPath) || lstatSync(targetPath, { throwIfNoEntry: false })) {
-    rmSync(targetPath, { recursive: true, force: true })
+  // 如果目标已存在，先安全删除（包括 broken symlink）
+  if (lstatSync(targetPath, { throwIfNoEntry: false })) {
+    safeRemovePath(targetPath)
   }
 
   // 复制 skill 到目标环境
@@ -233,9 +251,9 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
           const globalSkillsDir = getGlobalSkillsDir()
           const globalPath = resolve(globalSkillsDir, skillName)
 
-          // 如果目标已存在，先删除
-          if (existsSync(globalPath) || lstatSync(globalPath, { throwIfNoEntry: false })) {
-            rmSync(globalPath, { recursive: true, force: true })
+          // 如果目标已存在，先安全删除（包括 broken symlink）
+          if (lstatSync(globalPath, { throwIfNoEntry: false })) {
+            safeRemovePath(globalPath)
           }
 
           // 复制到全局目录

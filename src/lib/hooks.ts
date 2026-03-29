@@ -20,6 +20,8 @@ export function getClaudeSettingsPath(): string {
 export interface HookConfig {
   type: 'command'
   command: string
+  async?: boolean
+  [key: string]: unknown
 }
 
 /**
@@ -174,10 +176,19 @@ export function mergeSkillHooks(skillPath: string, skillName: string): boolean {
     // 遍历每个 matcher 配置
     for (const matcher of matchers) {
       // 转换 hooks 中的 command
-      const resolvedHooks: HookConfig[] = matcher.hooks.map((hook) => ({
-        type: hook.type,
-        command: `${resolveHookVariables(hook.command, skillPath)} ${skillMarker}`,
-      }))
+      const resolvedHooks: HookConfig[] = matcher.hooks.map((hook) => {
+        const resolved: HookConfig = {
+          type: hook.type,
+          command: `${resolveHookVariables(hook.command, skillPath)} ${skillMarker}`,
+        }
+        // 保留 async 等额外字段
+        for (const [key, value] of Object.entries(hook)) {
+          if (key !== 'type' && key !== 'command') {
+            resolved[key] = value
+          }
+        }
+        return resolved
+      })
 
       // 查找是否已有相同 matcher 的配置
       const incomingMatcher = normalizeMatcher(matcher.matcher)

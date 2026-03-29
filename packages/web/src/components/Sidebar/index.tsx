@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Package, Code, Settings, Terminal } from 'lucide-react'
+import { getVersion } from '@tauri-apps/api/app'
 
 const navItems = [
   { to: '/skills', icon: Package, label: 'Skills', description: 'Manage skills' },
@@ -8,6 +10,12 @@ const navItems = [
 ]
 
 export default function Sidebar() {
+  const [version, setVersion] = useState('...')
+
+  useEffect(() => {
+    getVersion().then(v => setVersion(v)).catch(() => setVersion('dev'))
+  }, [])
+
   return (
     <aside className="relative w-64 border-r border-[var(--color-border)] bg-[var(--color-bg-elevated)] flex flex-col z-10">
       {/* Logo */}
@@ -20,11 +28,11 @@ export default function Sidebar() {
             <div className="absolute -inset-1 bg-[var(--color-primary)]/20 rounded-lg blur-lg -z-10"></div>
           </div>
           <div>
-            <h1 className="text-lg font-bold font-mono tracking-tight">
+            <h1 className="text-lg font-bold font-mono tracking-tight" data-testid="sidebar-app-title">
               <span className="text-[var(--color-primary)]">j</span>-skills
             </h1>
-            <p className="text-[10px] text-[var(--color-text-muted)] font-mono uppercase tracking-widest">
-              v0.1.0
+            <p className="text-[10px] text-[var(--color-text-muted)] font-mono uppercase tracking-widest" data-testid="sidebar-version">
+              v{version}
             </p>
           </div>
         </div>
