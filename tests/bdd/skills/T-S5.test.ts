@@ -12,7 +12,7 @@ const setSkillsMock = vi.fn((skills: any[]) => { mockSkills = skills })
 const setIsLoadingMock = vi.fn()
 const updateSkillEnvironmentsMock = vi.fn()
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({
     skills: mockSkills,
     setSkills: setSkillsMock,
@@ -32,7 +32,7 @@ const installMock = vi.fn()
 const uninstallMock = vi.fn()
 const exportMock = vi.fn()
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     list: listMock,
     unlink: unlinkMock,
@@ -71,7 +71,7 @@ describe('T-S5 Unlink Skill', () => {
    * Step 3: API 失败 → Toast "Failed to unlink skill"
    */
   it('完整流程: Unlink 成功 → API 失败', async () => {
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     // Step 1: Card 和 Unlink 按钮存在
@@ -93,7 +93,7 @@ describe('T-S5 Unlink Skill', () => {
   })
 
   it('API 失败 → Toast "Failed to unlink skill"', async () => {
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     const unlinkBtn = await screen.findByTestId('skill-unlink-btn-unlink-skill')

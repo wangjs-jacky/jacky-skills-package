@@ -10,7 +10,7 @@ const setConfigMock = vi.fn()
 // 使用可变 config，每个测试用例可覆盖
 let configMock: Record<string, unknown> = {}
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({
     showToast: showToastMock,
     get config() {
@@ -24,7 +24,7 @@ const configGetMock = vi.fn()
 const configUpdateMock = vi.fn()
 const envListMock = vi.fn()
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   configApi: {
     get: configGetMock,
     update: configUpdateMock,
@@ -64,7 +64,7 @@ describe('T-ST5 页面初始化默认值', () => {
     configMock = {}
 
     const { default: SettingsPage } = await import(
-      '../../../packages/web/src/pages/Settings'
+      '../../../web/src/pages/Settings'
     )
     render(React.createElement(SettingsPage))
 
@@ -98,7 +98,7 @@ describe('T-ST5 页面初始化默认值', () => {
     configMock = { defaultEnvironments: ['cursor'], installMethod: 'copy' }
 
     const { default: SettingsPage } = await import(
-      '../../../packages/web/src/pages/Settings'
+      '../../../web/src/pages/Settings'
     )
     render(React.createElement(SettingsPage))
 
@@ -132,7 +132,7 @@ describe('T-ST5 页面初始化默认值', () => {
     configMock = { defaultEnvironments: ['claude-code'], installMethod: 'copy' }
 
     const { default: SettingsPage } = await import(
-      '../../../packages/web/src/pages/Settings'
+      '../../../web/src/pages/Settings'
     )
     render(React.createElement(SettingsPage))
 
@@ -163,7 +163,7 @@ describe('T-ST5 页面初始化默认值', () => {
 
     // 重新 import 获取新模块实例（vi.resetModules 已在 beforeEach 中调用）
     const { default: SettingsPageFresh } = await import(
-      '../../../packages/web/src/pages/Settings'
+      '../../../web/src/pages/Settings'
     )
     render(React.createElement(SettingsPageFresh))
 

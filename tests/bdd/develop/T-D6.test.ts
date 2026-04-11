@@ -12,13 +12,13 @@ const linkMock = vi.fn()
 const getFileContentMock = vi.fn()
 const getSkillMock = vi.fn()
 
-vi.mock('../../../packages/web/src/utils/directoryPicker', () => ({
+vi.mock('../../../web/src/utils/directoryPicker', () => ({
   pickDirectory: pickDirectoryMock,
 }))
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({ showToast: showToastMock }),
 }))
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     listSourceFolders: listSourceFoldersMock,
     removeSourceFolder: removeSourceFolderMock,
@@ -50,7 +50,7 @@ describe.skip('T-D6 Preview 加载 SKILL.md（源码未实现 onClick）', () =>
   })
 
   it('点击 skill 名称标签 → Preview 显示 SKILL.md 内容', async () => {
-    const { default: DevelopPage } = await import('../../../packages/web/src/pages/Develop')
+    const { default: DevelopPage } = await import('../../../web/src/pages/Develop')
     render(React.createElement(DevelopPage))
 
     await expectElementAsync(screen, 'develop-page', { text: 'task-memory' })

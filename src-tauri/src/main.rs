@@ -37,6 +37,14 @@ fn main() {
             j_skills_lib::commands::get_config,
             j_skills_lib::commands::update_config,
             j_skills_lib::commands::update_config_field,
+            j_skills_lib::commands::monitor_check_hooks,
+            j_skills_lib::commands::monitor_install_hooks,
+            j_skills_lib::commands::monitor_uninstall_hooks,
+            j_skills_lib::commands::monitor_check_daemon,
+            j_skills_lib::commands::monitor_start_daemon,
+            j_skills_lib::commands::monitor_stop_daemon,
+            j_skills_lib::commands::list_claude_md_files,
+            j_skills_lib::commands::read_claude_md,
         ])
         
         .setup(|app| {

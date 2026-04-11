@@ -9,6 +9,7 @@ pub use models::{SkillInfo, SkillSource, SourceFolder, AppConfig, InstallMethod}
 pub use utils::*;
 pub use services::{ConfigService, Registry, has_skill_hooks, has_skill_hooks_in_settings, merge_skill_hooks, remove_skill_hooks};
 pub use commands::AppState;
+pub use commands::monitor;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

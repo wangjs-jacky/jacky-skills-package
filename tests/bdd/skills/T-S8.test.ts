@@ -33,7 +33,7 @@ const useStoreMock = Object.assign(
   }
 )
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: useStoreMock,
 }))
 
@@ -46,7 +46,7 @@ const exportMock = vi.fn()
 const environmentsListMock = vi.fn()
 const configGetMock = vi.fn()
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     list: listMock,
     unlink: unlinkMock,
@@ -111,7 +111,7 @@ describe('T-S8 批量操作 Dropdown', () => {
    * MUST-1 (M1-01+M1-03): Dropdown 菜单替代平铺按钮
    */
   it('M1: 显示 "Batch Operations" Dropdown 按钮，且只显示默认环境', async () => {
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await screen.findByTestId('skills-stats')
@@ -140,7 +140,7 @@ describe('T-S8 批量操作 Dropdown', () => {
       data: { name: 'skill-b', env: 'claude-code', path: '~/.claude/skills/skill-b' },
     })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await openDropdown()
@@ -171,7 +171,7 @@ describe('T-S8 批量操作 Dropdown', () => {
     listMock.mockResolvedValue({ success: true, data: { skills: allInstalledData, cleanedCount: 0 } })
     uninstallMock.mockResolvedValue({ success: true, data: { name: 'skill-a', env: 'claude-code', removed: true } })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await openDropdown()
@@ -204,7 +204,7 @@ describe('T-S8 批量操作 Dropdown', () => {
         error: 'Skill path is not a directory: /skills/skill-c',
       })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await openDropdown()
@@ -231,7 +231,7 @@ describe('T-S8 批量操作 Dropdown', () => {
       error: 'Skill path is not a directory',
     })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await openDropdown()
@@ -254,7 +254,7 @@ describe('T-S8 批量操作 Dropdown', () => {
     let resolveInstall: () => void
     installMock.mockReturnValue(new Promise<void>((resolve) => { resolveInstall = resolve }))
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await openDropdown()
@@ -283,7 +283,7 @@ describe('T-S8 批量操作 Dropdown', () => {
       data: { name: 'skill-b', env: 'claude-code', path: '~/.claude/skills/skill-b' },
     })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await openDropdown()
@@ -307,7 +307,7 @@ describe('T-S8 批量操作 Dropdown', () => {
     mockSkills = []
     listMock.mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await screen.findByTestId('skills-stats')
@@ -321,7 +321,7 @@ describe('T-S8 批量操作 Dropdown', () => {
     mockConfig = {}
     configGetMock.mockResolvedValue({ success: true, data: {} })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await screen.findByTestId('skills-stats')

@@ -6,7 +6,7 @@ import { render, screen, within } from '@testing-library/react'
 
 const listMock = vi.fn()
 
-vi.mock('../../packages/web/src/api/client', () => ({
+vi.mock('../../web/src/api/client', () => ({
   skillsApi: {
     list: listMock,
   },
@@ -18,7 +18,7 @@ vi.mock('../../packages/web/src/api/client', () => ({
   },
 }))
 
-vi.mock('../../packages/web/src/stores', () => ({
+vi.mock('../../web/src/stores', () => ({
   useStore: () => ({
     skills: [],
     setSkills: vi.fn(),
@@ -38,7 +38,7 @@ describe('Skills 页面 DOM 快照', () => {
   })
 
   it('默认状态匹配快照', async () => {
-    const { default: SkillsPage } = await import('../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../web/src/pages/Skills')
     const { container } = render(React.createElement(SkillsPage))
 
     // 等待 useEffect 中的异步加载完成
@@ -50,7 +50,7 @@ describe('Skills 页面 DOM 快照', () => {
   })
 
   it('空状态下存在 j-skills link 提示', async () => {
-    const { default: SkillsPage } = await import('../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await vi.waitFor(() => {

@@ -11,7 +11,7 @@ const setSkillsMock = vi.fn((skills: any[]) => { mockSkills = skills })
 const setIsLoadingMock = vi.fn()
 const updateSkillEnvironmentsMock = vi.fn()
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({
     skills: mockSkills,
     setSkills: setSkillsMock,
@@ -31,7 +31,7 @@ const installMock = vi.fn()
 const uninstallMock = vi.fn()
 const exportMock = vi.fn()
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     list: listMock,
     unlink: unlinkMock,
@@ -60,7 +60,7 @@ describe('T-S6 空状态', () => {
    * Step 2: Stats Bar 显示 "0 skills linked" 和 "0 installed"
    */
   it('API 返回空 → 显示空状态和零值统计', async () => {
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     // Step 1: 空状态文案

@@ -20,7 +20,7 @@ describe('skillsApi transport selection', () => {
       location: { protocol: 'https:', host: 'tauri.localhost' },
     }
 
-    const { getApiTransport } = await import('../../packages/web/src/api/client')
+    const { getApiTransport } = await import('../../web/src/api/client')
 
     expect(getApiTransport()).toBe('tauri')
   })
@@ -30,7 +30,7 @@ describe('skillsApi transport selection', () => {
       location: { protocol: 'http:', host: 'localhost:5173' },
     }
 
-    const { getApiTransport } = await import('../../packages/web/src/api/client')
+    const { getApiTransport } = await import('../../web/src/api/client')
 
     expect(getApiTransport()).toBe('http')
   })
@@ -41,7 +41,7 @@ describe('skillsApi transport selection', () => {
       location: { protocol: 'https:', host: 'tauri.localhost' },
     }
 
-    const { getApiTransport } = await import('../../packages/web/src/api/client')
+    const { getApiTransport } = await import('../../web/src/api/client')
 
     expect(getApiTransport()).toBe('tauri')
   })

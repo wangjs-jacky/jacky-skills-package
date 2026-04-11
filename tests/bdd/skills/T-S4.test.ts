@@ -12,7 +12,7 @@ const setSkillsMock = vi.fn((skills: any[]) => { mockSkills = skills })
 const setIsLoadingMock = vi.fn()
 const updateSkillEnvironmentsMock = vi.fn()
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({
     skills: mockSkills,
     setSkills: setSkillsMock,
@@ -32,7 +32,7 @@ const installMock = vi.fn()
 const uninstallMock = vi.fn()
 const exportMock = vi.fn()
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     list: listMock,
     unlink: unlinkMock,
@@ -72,7 +72,7 @@ describe('T-S4 导出 Skill', () => {
    * Step 4: API 返回 errors → Toast 显示 errors[0]
    */
   it('完整流程: 导出成功 → API 失败 → 返回 errors', async () => {
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     // Step 1: Card 和导出按钮存在

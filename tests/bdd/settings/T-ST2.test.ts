@@ -9,7 +9,7 @@ const showToastMock = vi.fn()
 const setConfigMock = vi.fn()
 const configMock = { defaultEnvironments: ['claude-code', 'cursor'], installMethod: 'copy' }
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({
     showToast: showToastMock,
     config: configMock,
@@ -21,7 +21,7 @@ const configGetMock = vi.fn()
 const configUpdateMock = vi.fn()
 const envListMock = vi.fn()
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   configApi: {
     get: configGetMock,
     update: configUpdateMock,
@@ -59,7 +59,7 @@ describe('T-ST2 默认环境多选', () => {
    */
   it('完整流程: 双选中 → 取消 Claude Code → 重新选中 Claude Code', async () => {
     const { default: SettingsPage } = await import(
-      '../../../packages/web/src/pages/Settings'
+      '../../../web/src/pages/Settings'
     )
     render(React.createElement(SettingsPage))
 

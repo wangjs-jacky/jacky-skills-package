@@ -8,7 +8,7 @@ const showToastMock = vi.fn()
 const setConfigMock = vi.fn()
 const configMock = { defaultEnvironments: ['claude-code'], installMethod: 'copy' }
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({
     showToast: showToastMock,
     config: configMock,
@@ -20,7 +20,7 @@ const configGetMock = vi.fn()
 const configUpdateMock = vi.fn()
 const envListMock = vi.fn()
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   configApi: {
     get: configGetMock,
     update: configUpdateMock,
@@ -65,7 +65,7 @@ describe('T-ST4 设置自动保存', () => {
    */
   it('完整流程: 无 Save 按钮 → 修改环境自动保存 → 修改安装方式自动保存', async () => {
     const { default: SettingsPage } = await import(
-      '../../../packages/web/src/pages/Settings'
+      '../../../web/src/pages/Settings'
     )
     render(React.createElement(SettingsPage))
 
@@ -114,7 +114,7 @@ describe('T-ST4 设置自动保存', () => {
     configUpdateMock.mockRejectedValue(new Error('Network error'))
 
     const { default: SettingsPage } = await import(
-      '../../../packages/web/src/pages/Settings'
+      '../../../web/src/pages/Settings'
     )
     render(React.createElement(SettingsPage))
 

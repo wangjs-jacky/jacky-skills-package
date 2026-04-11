@@ -13,7 +13,7 @@ const setSkillsMock = vi.fn((skills: any[]) => { mockSkills = skills })
 const setIsLoadingMock = vi.fn()
 const updateSkillEnvironmentsMock = vi.fn()
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({
     skills: mockSkills,
     setSkills: setSkillsMock,
@@ -38,7 +38,7 @@ const mockEnvironments = [
   { name: 'cursor', label: 'Cursor', globalPath: '/home/.cursor' },
 ]
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     list: listMock,
     unlink: unlinkMock,
@@ -85,7 +85,7 @@ describe('T-S3 环境开关安装/卸载', () => {
    * Step 4: API 失败 → Toast "Failed to install to/remove from xxx"
    */
   it('完整流程: ON badge → 卸载 → 安装 → API 失败', async () => {
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     // Step 1: my-skill 的 claude-code 已安装 → 显示 "ON" badge
@@ -121,7 +121,7 @@ describe('T-S3 环境开关安装/卸载', () => {
     mockSkills = [skillWithClaudeCode]
     listMock.mockResolvedValue({ success: true, data: { skills: [skillWithClaudeCode], cleanedCount: 0 } })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     // 卸载失败

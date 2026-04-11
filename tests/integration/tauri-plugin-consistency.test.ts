@@ -27,7 +27,7 @@ function readAllSourceFiles(dir: string): string[] {
 }
 
 // 扫描前端代码中实际 import 的 @tauri-apps/plugin-xxx
-const webSrc = resolve(root, 'packages/web/src')
+const webSrc = resolve(root, 'web/src')
 const allSourceContents = readAllSourceFiles(webSrc)
 const frontendPlugins = new Set<string>()
 for (const content of allSourceContents) {

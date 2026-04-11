@@ -11,7 +11,7 @@ const setSkillsMock = vi.fn((skills: any[]) => { mockSkills = skills })
 const setIsLoadingMock = vi.fn()
 const updateSkillEnvironmentsMock = vi.fn()
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({
     skills: mockSkills,
     setSkills: setSkillsMock,
@@ -36,7 +36,7 @@ const mockEnvironments = [
   { name: 'cursor', label: 'Cursor', globalPath: '/home/.cursor' },
 ]
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     list: listMock,
     unlink: unlinkMock,
@@ -84,7 +84,7 @@ describe('T-S7 Skill Card 信息展示', () => {
    * Step 6: hover 时显示 Export 和 Unlink 按钮
    */
   it('完整验证 Card 信息展示', async () => {
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     // Step 1: Card 可见，显示 skill 名称
@@ -134,7 +134,7 @@ describe('T-S7 Skill Card 信息展示', () => {
   })
 
   it('无 sourceFolder 的 skill 不显示 "From:" 信息', async () => {
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     const card = await screen.findByTestId('skill-card-basic-skill')

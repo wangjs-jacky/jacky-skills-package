@@ -13,13 +13,13 @@ const linkMock = vi.fn()
 const getFileContentMock = vi.fn()
 const getSkillMock = vi.fn()
 
-vi.mock('../../../packages/web/src/utils/directoryPicker', () => ({
+vi.mock('../../../web/src/utils/directoryPicker', () => ({
   pickDirectory: pickDirectoryMock,
 }))
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({ showToast: showToastMock }),
 }))
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     listSourceFolders: listSourceFoldersMock,
     removeSourceFolder: removeSourceFolderMock,
@@ -44,7 +44,7 @@ describe('T-D3 删除源文件夹', () => {
   })
 
   it('删除文件夹 → toast 成功 → 列表变为空状态', async () => {
-    const { default: DevelopPage } = await import('../../../packages/web/src/pages/Develop')
+    const { default: DevelopPage } = await import('../../../web/src/pages/Develop')
     render(React.createElement(DevelopPage))
 
     // 等待文件夹路径出现

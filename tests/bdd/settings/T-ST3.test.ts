@@ -9,7 +9,7 @@ const showToastMock = vi.fn()
 const setConfigMock = vi.fn()
 const configMock = { defaultEnvironments: ['claude-code'], installMethod: 'copy' }
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({
     showToast: showToastMock,
     config: configMock,
@@ -21,7 +21,7 @@ const configGetMock = vi.fn()
 const configUpdateMock = vi.fn()
 const envListMock = vi.fn()
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   configApi: {
     get: configGetMock,
     update: configUpdateMock,
@@ -59,7 +59,7 @@ describe('T-ST3 安装方式切换', () => {
    */
   it('完整流程: copy 选中 → 切换到 symlink → 切换回 copy', async () => {
     const { default: SettingsPage } = await import(
-      '../../../packages/web/src/pages/Settings'
+      '../../../web/src/pages/Settings'
     )
     render(React.createElement(SettingsPage))
 

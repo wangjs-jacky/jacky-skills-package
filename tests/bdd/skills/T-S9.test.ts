@@ -31,7 +31,7 @@ const useStoreMock = Object.assign(
   }
 )
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: useStoreMock,
 }))
 
@@ -44,7 +44,7 @@ const exportMock = vi.fn()
 const environmentsListMock = vi.fn()
 const configGetMock = vi.fn()
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     list: listMock,
     unlink: unlinkMock,
@@ -84,7 +84,7 @@ describe('T-S9 失效技能自动清理', () => {
     // 新返回结构：{ skills, cleanedCount }
     listMock.mockResolvedValue({ success: true, data: { skills: validSkills, cleanedCount: 0 } })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     // 等待加载完成
@@ -112,7 +112,7 @@ describe('T-S9 失效技能自动清理', () => {
     mockSkills = [...remainingSkills]
     listMock.mockResolvedValue({ success: true, data: { skills: remainingSkills, cleanedCount: 2 } })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await waitFor(() => {
@@ -133,7 +133,7 @@ describe('T-S9 失效技能自动清理', () => {
     mockSkills = []
     listMock.mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 5 } })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await waitFor(() => {

@@ -10,13 +10,13 @@ const showToastMock = vi.fn()
 const removeSourceFolderMock = vi.fn()
 const linkMock = vi.fn()
 
-vi.mock('../../../packages/web/src/utils/directoryPicker', () => ({
+vi.mock('../../../web/src/utils/directoryPicker', () => ({
   pickDirectory: pickDirectoryMock,
 }))
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({ showToast: showToastMock }),
 }))
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     listSourceFolders: listSourceFoldersMock,
     removeSourceFolder: removeSourceFolderMock,
@@ -32,7 +32,7 @@ describe('T-D5 Develop 页面无 Preview', () => {
   })
 
   it('页面不包含 Preview 区域和 Select a skill to preview 文案', async () => {
-    const { default: DevelopPage } = await import('../../../packages/web/src/pages/Develop')
+    const { default: DevelopPage } = await import('../../../web/src/pages/Develop')
     render(React.createElement(DevelopPage))
 
     // 确认页面渲染

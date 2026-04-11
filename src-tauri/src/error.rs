@@ -30,4 +30,10 @@ impl From<AppError> for String {
     }
 }
 
+impl From<AppError> for tauri::ipc::InvokeError {
+    fn from(error: AppError) -> Self {
+        tauri::ipc::InvokeError::from(error.to_string())
+    }
+}
+
 pub type Result<T> = std::result::Result<T, AppError>;

@@ -32,7 +32,7 @@ afterEach(() => {
 describe('前端 → Tauri invoke 联调测试', () => {
   async function getApi() {
     // 动态导入确保拿到最新模块
-    const mod = await import('../../packages/web/src/api/client')
+    const mod = await import('../../web/src/api/client')
     return mod
   }
 

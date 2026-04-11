@@ -8,7 +8,7 @@ const showToastMock = vi.fn()
 const setConfigMock = vi.fn()
 const configMock = { defaultEnvironments: ['claude-code'], installMethod: 'copy' }
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({
     showToast: showToastMock,
     config: configMock,
@@ -20,7 +20,7 @@ const configGetMock = vi.fn()
 const configUpdateMock = vi.fn()
 const envListMock = vi.fn()
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   configApi: {
     get: configGetMock,
     update: configUpdateMock,
@@ -61,7 +61,7 @@ describe('T-ST1 读取配置', () => {
 
     // Step 1: 渲染页面, settings-page 容器存在
     const { default: SettingsPage } = await import(
-      '../../../packages/web/src/pages/Settings'
+      '../../../web/src/pages/Settings'
     )
     render(React.createElement(SettingsPage))
 
@@ -109,7 +109,7 @@ describe('T-ST1 读取配置', () => {
     envListMock.mockResolvedValue({ success: true, data: mockEnvironments })
 
     const { default: SettingsPage2 } = await import(
-      '../../../packages/web/src/pages/Settings'
+      '../../../web/src/pages/Settings'
     )
     render(React.createElement(SettingsPage2))
 
@@ -126,7 +126,7 @@ describe('T-ST1 读取配置', () => {
     envListMock.mockRejectedValue(new Error('Network error'))
 
     const { default: SettingsPage3 } = await import(
-      '../../../packages/web/src/pages/Settings'
+      '../../../web/src/pages/Settings'
     )
     render(React.createElement(SettingsPage3))
 

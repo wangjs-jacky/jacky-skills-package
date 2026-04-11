@@ -14,13 +14,13 @@ const linkMock = vi.fn()
 const getFileContentMock = vi.fn()
 const getSkillMock = vi.fn()
 
-vi.mock('../../../packages/web/src/utils/directoryPicker', () => ({
+vi.mock('../../../web/src/utils/directoryPicker', () => ({
   pickDirectory: pickDirectoryMock,
 }))
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({ showToast: showToastMock }),
 }))
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     listSourceFolders: listSourceFoldersMock,
     removeSourceFolder: removeSourceFolderMock,
@@ -71,7 +71,7 @@ describe('T-D7 Link 结果明细 - 成功链接后显示链接的 skill 名称�
       })
 
     const { default: DevelopPage } = await import(
-      '../../../packages/web/src/pages/Develop'
+      '../../../web/src/pages/Develop'
     )
     render(React.createElement(DevelopPage))
 
@@ -144,7 +144,7 @@ describe('T-D7 Link 结果明细 - 成功链接后显示链接的 skill 名称�
       })
 
     const { default: DevelopPage } = await import(
-      '../../../packages/web/src/pages/Develop'
+      '../../../web/src/pages/Develop'
     )
     render(React.createElement(DevelopPage))
 

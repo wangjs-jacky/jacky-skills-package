@@ -14,7 +14,7 @@ const setSkillsMock = vi.fn()
 const setIsLoadingMock = vi.fn()
 const updateSkillEnvironmentsMock = vi.fn()
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({
     get skills() { return mockSkills },
     setSkills: setSkillsMock,
@@ -34,7 +34,7 @@ const installMock = vi.fn()
 const uninstallMock = vi.fn()
 const exportMock = vi.fn()
 
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     list: listMock,
     unlink: unlinkMock,
@@ -88,7 +88,7 @@ describe('T-S1 列表加载与统计', () => {
   it('Step 1: 渲染时调用 setIsLoading(true) 和 list API', async () => {
     listMock.mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     // 组件 mount 后应调用 setIsLoading(true)
@@ -101,7 +101,7 @@ describe('T-S1 列表加载与统计', () => {
     listMock.mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } })
     mockSkills = []
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     // isLoading 为 false，直接渲染主页面
@@ -115,7 +115,7 @@ describe('T-S1 列表加载与统计', () => {
     mockSkills = mockSkillData
     listMock.mockResolvedValue({ success: true, data: { skills: mockSkillData, cleanedCount: 0 } })
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     // Stats Bar
@@ -132,7 +132,7 @@ describe('T-S1 列表加载与统计', () => {
     listMock.mockRejectedValue(new Error('Network error'))
     mockSkills = []
 
-    const { default: SkillsPage } = await import('../../../packages/web/src/pages/Skills')
+    const { default: SkillsPage } = await import('../../../web/src/pages/Skills')
     render(React.createElement(SkillsPage))
 
     await waitFor(() => {

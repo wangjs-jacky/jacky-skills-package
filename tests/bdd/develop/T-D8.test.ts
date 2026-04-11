@@ -13,13 +13,13 @@ const linkMock = vi.fn()
 const getFileContentMock = vi.fn()
 const getSkillMock = vi.fn()
 
-vi.mock('../../../packages/web/src/utils/directoryPicker', () => ({
+vi.mock('../../../web/src/utils/directoryPicker', () => ({
   pickDirectory: pickDirectoryMock,
 }))
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({ showToast: showToastMock }),
 }))
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     listSourceFolders: listSourceFoldersMock,
     removeSourceFolder: removeSourceFolderMock,
@@ -48,7 +48,7 @@ describe('T-D8 目录选择器 - 唤起文件管理器并回填路径', () => {
   it('完整流程: 选择目录 → 回填路径 → 取消保持', async () => {
     // Step 1: 渲染页面, Batch Link 卡片可见
     pickDirectoryMock.mockResolvedValue('/Users/demo/my-skills')
-    const { default: DevelopPage } = await import('../../../packages/web/src/pages/Develop')
+    const { default: DevelopPage } = await import('../../../web/src/pages/Develop')
     render(React.createElement(DevelopPage))
 
     // 等待 Batch Link 文本出现，确认页面渲染完成

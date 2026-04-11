@@ -31,14 +31,14 @@ vi.mock('lucide-react', () => ({
 // --- Mock Store ---
 const showToastMock = vi.fn()
 
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({
     showToast: showToastMock,
   }),
 }))
 
 // --- Mock API ---
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     list: vi.fn().mockResolvedValue({ success: true, data: { skills: [], cleanedCount: 0 } }),
     unlink: vi.fn(),
@@ -63,7 +63,7 @@ describe('T-SB1 Sidebar 版本号显示', () => {
     // 让 getVersion 挂起，观察初始状态
     getVersionMock.mockReturnValue(new Promise(() => {}))
 
-    const Sidebar = (await import('../../../packages/web/src/components/Sidebar')).default
+    const Sidebar = (await import('../../../web/src/components/Sidebar')).default
     render(React.createElement(Sidebar))
 
     expect(getVersionMock).toHaveBeenCalledTimes(1)
@@ -73,7 +73,7 @@ describe('T-SB1 Sidebar 版本号显示', () => {
   it('Step 2: getVersion() 返回 "0.3.1" → 显示 "v0.3.1"', async () => {
     getVersionMock.mockResolvedValue('0.3.1')
 
-    const Sidebar = (await import('../../../packages/web/src/components/Sidebar')).default
+    const Sidebar = (await import('../../../web/src/components/Sidebar')).default
     render(React.createElement(Sidebar))
 
     await expectElementAsync(screen, 'sidebar-version', { text: 'v0.3.1' })
@@ -82,7 +82,7 @@ describe('T-SB1 Sidebar 版本号显示', () => {
   it('Step 3: getVersion() 失败 → fallback 显示 "vdev"', async () => {
     getVersionMock.mockRejectedValue(new Error('Not in Tauri'))
 
-    const Sidebar = (await import('../../../packages/web/src/components/Sidebar')).default
+    const Sidebar = (await import('../../../web/src/components/Sidebar')).default
     render(React.createElement(Sidebar))
 
     await expectElementAsync(screen, 'sidebar-version', { text: 'vdev' })
@@ -91,7 +91,7 @@ describe('T-SB1 Sidebar 版本号显示', () => {
   it('Step 4: 标题显示 "j-skills"', async () => {
     getVersionMock.mockResolvedValue('0.3.1')
 
-    const Sidebar = (await import('../../../packages/web/src/components/Sidebar')).default
+    const Sidebar = (await import('../../../web/src/components/Sidebar')).default
     render(React.createElement(Sidebar))
 
     await expectElementAsync(screen, 'sidebar-app-title', { text: 'j-skills' })

@@ -14,7 +14,10 @@ jacky-skills-package/
 │       ├── tsup.config.ts
 │       ├── vitest.config.ts
 │       └── package.json
-├── src-tauri/            → Tauri 桌面应用（Rust，暂搁置）
+├── web/                  → Tauri 前端（React，不发布）
+│   ├── src/              → 页面、组件、API、hooks
+│   └── package.json
+├── src-tauri/            → Tauri 后端（Rust）
 ├── tests/
 │   ├── integration/      → 跨包集成测试（Rust ↔ Node.js 一致性）
 │   └── bdd/cases/        → BDD 用例定义
@@ -54,6 +57,8 @@ pnpm typecheck
 | CLI 核心库 | `packages/cli/src/lib/*.ts` |
 | 环境定义 | `packages/cli/src/lib/environments.ts`（35+ IDE） |
 | Hooks 合并 | `packages/cli/src/lib/hooks.ts` |
+| 前端页面 | `web/src/pages/` |
+| 前端 API | `web/src/api/` |
 | Tauri 配置 | `src-tauri/tauri.conf.json` |
 | Rust 命令 | `src-tauri/src/commands/*.rs` |
 

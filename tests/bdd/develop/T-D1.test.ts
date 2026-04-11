@@ -13,13 +13,13 @@ const linkMock = vi.fn()
 const getFileContentMock = vi.fn()
 const getSkillMock = vi.fn()
 
-vi.mock('../../../packages/web/src/utils/directoryPicker', () => ({
+vi.mock('../../../web/src/utils/directoryPicker', () => ({
   pickDirectory: pickDirectoryMock,
 }))
-vi.mock('../../../packages/web/src/stores', () => ({
+vi.mock('../../../web/src/stores', () => ({
   useStore: () => ({ showToast: showToastMock }),
 }))
-vi.mock('../../../packages/web/src/api/client', () => ({
+vi.mock('../../../web/src/api/client', () => ({
   skillsApi: {
     listSourceFolders: listSourceFoldersMock,
     removeSourceFolder: removeSourceFolderMock,
@@ -48,7 +48,7 @@ describe('T-D1 Batch Link - 输入路径并扫描子目录批量链接', () => {
    */
   it('完整流程: 空路径校验 → 链接成功 → 链接失败', async () => {
     // Step 1: 渲染页面, develop-page 容器存在
-    const { default: DevelopPage } = await import('../../../packages/web/src/pages/Develop')
+    const { default: DevelopPage } = await import('../../../web/src/pages/Develop')
     render(React.createElement(DevelopPage))
 
     const pageEl = await screen.findByTestId('develop-page')
