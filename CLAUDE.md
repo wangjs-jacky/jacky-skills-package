@@ -1,82 +1,89 @@
-# j-skills 工作区指南（精简索引）
+# j-skills 工作区指南
 
 ## 项目概述
 
-j-skills 是一个 Agent Skills 管理工具，包含：
-- **CLI 工具** (`src/`)：Node.js 命令行工具
-- **Web GUI** (`packages/web/`)：React + Vite 前端
-- **Tauri 桌面应用** (`src-tauri/`)：Rust 后端 + WebView 前端
+j-skills 是一个 Agent Skills 管理工具，采用 pnpm Monorepo 结构：
 
-## 文档导航（Reference）
-
-- 页面定义（Skills / Develop / Settings）：
-  - `docs/reference/pages.md`
-- Troubleshooting（疑难杂症，原 travel 板块）：
-  - `docs/reference/troubleshooting.md`
-- 开发、调试、构建（开发包 / 生产包）：
-  - `docs/reference/dev-debug-build.md`
-- 测试用例库（BDD 步骤描述）：
-  - `docs/reference/test-cases.md`
-- 测试 Mock 方案（模板与速查）：
-  - `docs/reference/test-mock-guide.md`
-- Changelog 生成指南（发布文案规范）：
-  - `docs/reference/changelog-guide.md`
-- Hooks 合并机制（Claude Code 环境 hooks 合并流程）：
-  - `docs/reference/hooks-merge.md`
-- **测试策略与规范（BDD 流程、tdd-kit 用法、Mock 方案）**：
-  - `docs/reference/testing.md`
-
-## 常用命令速查
-
-```bash
-# 前端开发（仅 Web）
-pnpm dev:web
-
-# 完整桌面开发（Tauri + Web）
-pnpm dev
-
-# 构建开发包（Debug）
-pnpm exec tauri build --debug
-
-# 构建生产包（Release）
-pnpm build:tauri
-
-# 运行测试
-pnpm test
+```
+jacky-skills-package/
+├── packages/
+│   └── cli/              → @wangjs-jacky/j-skills（npm 发布）
+│       ├── src/          → CLI 源码（commands + lib）
+│       ├── bin/          → CLI 入口脚本
+│       ├── tests/        → CLI 单元测试
+│       ├── tsup.config.ts
+│       ├── vitest.config.ts
+│       └── package.json
+├── src-tauri/            → Tauri 桌面应用（Rust，暂搁置）
+├── tests/
+│   ├── integration/      → 跨包集成测试（Rust ↔ Node.js 一致性）
+│   └── bdd/cases/        → BDD 用例定义
+├── docs/reference/       → 开发文档
+├── skills/               → 内置 skill
+└── scripts/              → 工具脚本
 ```
 
-## 关键文件位置
+## 常用命令
 
-| 功能 | 文件路径 |
-|-----|---------|
+```bash
+# CLI 开发（watch 模式）
+pnpm dev:cli
+
+# CLI 构建
+pnpm build:cli
+
+# 运行 CLI 测试
+pnpm --filter @wangjs-jacky/j-skills test
+
+# 运行根级集成测试
+pnpm test:integration
+
+# 运行所有测试
+pnpm test
+
+# 类型检查
+pnpm typecheck
+```
+
+## 关键文件
+
+| 功能 | 路径 |
+|-----|------|
+| CLI 入口 | `packages/cli/src/index.ts` |
+| CLI 命令 | `packages/cli/src/commands/*.ts` |
+| CLI 核心库 | `packages/cli/src/lib/*.ts` |
+| 环境定义 | `packages/cli/src/lib/environments.ts`（35+ IDE） |
+| Hooks 合并 | `packages/cli/src/lib/hooks.ts` |
 | Tauri 配置 | `src-tauri/tauri.conf.json` |
 | Rust 命令 | `src-tauri/src/commands/*.rs` |
-| 前端 API | `packages/web/src/api/client.ts` |
-| Skills 页面 | `packages/web/src/pages/Skills/index.tsx` |
-| Develop 页面 | `packages/web/src/pages/Develop/index.tsx` |
-| Settings 页面 | `packages/web/src/pages/Settings/index.tsx` |
-| Cargo 配置 | `src-tauri/Cargo.toml` |
 
-## 测试策略
+## 文档导航
 
-> **⚠️ 测试是不可协商的开发环节。每个功能变更都必须有对应的测试覆盖，未测试的代码视为未完成。**
+| 文档 | 路径 |
+|------|------|
+| 测试策略 | `docs/reference/testing.md` |
+| BDD 用例库 | `docs/reference/test-cases.md` |
+| Mock 方案 | `docs/reference/test-mock-guide.md` |
+| 开发调试构建 | `docs/reference/dev-debug-build.md` |
+| Hooks 合并机制 | `docs/reference/hooks-merge.md` |
+| Changelog 规范 | `docs/reference/changelog-guide.md` |
+| Troubleshooting | `docs/reference/troubleshooting.md` |
 
-**优先级：BDD 驱动 > 截图测试 > 集成测试 > 单元测试**
+## 测试
 
-完整测试策略、tdd-kit 用法、BDD 流程、Mock 方案详见：
-- **`docs/reference/testing.md`**
+**优先级：单元测试 > 集成测试 > BDD 驱动**
 
-快速参考：
-- BDD 用例库：`docs/reference/test-cases.md`
-- Mock 模板：`docs/reference/test-mock-guide.md`
-- 运行测试：`pnpm test`
+- CLI 单元测试：`packages/cli/tests/`（vitest）
+- 根级集成测试：`tests/integration/`（Rust ↔ Node.js 环境定义一致性校验）
+- BDD 用例定义：`tests/bdd/cases/`
+
+## 发布
+
+```bash
+cd packages/cli && npm publish
+```
 
 ## 外部文档
 
 - [Tauri 官方文档](https://tauri.app/)
 - [项目 README](./README.md)
-
-## 发布文案规范
-
-Release 与 Changelog 规范已迁移到 Reference：
-- `docs/reference/changelog-guide.md`

@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
-import { mergeSkillHooks, validateHooksConfig } from '../../packages/cli/src/lib/hooks'
+import { mergeSkillHooks, validateHooksConfig } from '../../src/lib/hooks'
 
 describe('validateHooksConfig', () => {
   it('正常结构通过验证', () => {

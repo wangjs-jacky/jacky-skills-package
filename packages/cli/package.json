@@ -1,0 +1,58 @@
+{
+  "name": "@wangjs-jacky/j-skills",
+  "version": "0.3.1",
+  "description": "CLI tool for managing Agent Skills - link, install, and manage skills across 35+ coding agent environments",
+  "type": "module",
+  "bin": {
+    "j-skills": "./bin/j-skills.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [
+    "cli",
+    "claude-code",
+    "skills",
+    "opencode",
+    "cursor",
+    "ai",
+    "developer-tools"
+  ],
+  "author": "wangjiasheng",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wangjs-jacky/jacky-skills-package.git"
+  },
+  "homepage": "https://github.com/wangjs-jacky/jacky-skills-package#readme",
+  "bugs": {
+    "url": "https://github.com/wangjs-jacky/jacky-skills-package/issues"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "cac": "^6.7.14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

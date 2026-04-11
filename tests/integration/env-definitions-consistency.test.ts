@@ -9,7 +9,7 @@ import {
   ENVIRONMENTS,
   getAllowedEnvironments,
   type Environment,
-} from '../../src/lib/environments'
+} from '../../packages/cli/src/lib/environments'
 
 describe('扩展环境配置项 Harness', () => {
   // M1: Node.js 底层定义完整性
