@@ -118,6 +118,23 @@ export default function SkillCard({ skill, environments, onUnlink, onToggleEnv, 
           </div>
         )}
 
+        {/* Description */}
+        {skill.description && (
+          <div className="mt-3">
+            <p
+              className="text-xs font-mono text-[var(--color-text-muted)] leading-relaxed"
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}
+            >
+              {skill.description}
+            </p>
+          </div>
+        )}
+
         {/* Environment toggles */}
         {environments.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">

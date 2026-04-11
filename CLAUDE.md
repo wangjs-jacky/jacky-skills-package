@@ -21,6 +21,8 @@ j-skills 是一个 Agent Skills 管理工具，包含：
   - `docs/reference/test-mock-guide.md`
 - Changelog 生成指南（发布文案规范）：
   - `docs/reference/changelog-guide.md`
+- Hooks 合并机制（Claude Code 环境 hooks 合并流程）：
+  - `docs/reference/hooks-merge.md`
 
 ## 常用命令速查
 

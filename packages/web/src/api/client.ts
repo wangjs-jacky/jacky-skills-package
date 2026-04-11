@@ -82,6 +82,7 @@ export interface SkillInfo {
   sourceFolder?: string
   installedEnvironments?: string[]
   installedAt?: string
+  description?: string
 }
 
 export interface ListSkillsResult {

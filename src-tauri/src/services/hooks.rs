@@ -103,6 +103,108 @@ pub fn has_skill_hooks(skill_path: &Path) -> bool {
     read_skill_hooks(skill_path).map_or(false, |h| h.is_some())
 }
 
+/// 验证 hooks 配置结构是否符合规范
+/// 在合并/移除操作前调用，防止损坏 settings.json
+pub fn validate_hooks_config(hooks: &serde_json::Value) -> std::result::Result<(), Vec<String>> {
+    let mut errors = Vec::new();
+
+    // 1. hooks 必须是 object
+    if !hooks.is_object() {
+        return Err(vec!["hooks 必须是 object".to_string()]);
+    }
+
+    if let Some(hooks_obj) = hooks.as_object() {
+        for (hook_type, matchers_val) in hooks_obj {
+            // 2. 每个 hookType 的值必须是数组
+            if !matchers_val.is_array() {
+                errors.push(format!("hooks.{} 不是数组", hook_type));
+                continue;
+            }
+
+            if let Some(matchers) = matchers_val.as_array() {
+                for (m_idx, matcher_val) in matchers.iter().enumerate() {
+                    // 3. 每个 matcher 必须是 object
+                    if !matcher_val.is_object() {
+                        errors.push(format!("hooks.{}[{}] 不是 object", hook_type, m_idx));
+                        continue;
+                    }
+
+                    let m = matcher_val.as_object().unwrap();
+
+                    // 4. matcher 字段如果存在必须是 string 或 null
+                    if let Some(mv) = m.get("matcher") {
+                        if !mv.is_string() && !mv.is_null() {
+                            errors.push(format!(
+                                "hooks.{}[{}].matcher 不是 string/null",
+                                hook_type, m_idx
+                            ));
+                        }
+                    }
+
+                    // 5. 必须有 hooks 属性且为数组
+                    match m.get("hooks") {
+                        None => {
+                            errors.push(format!(
+                                "hooks.{}[{}] 缺少 hooks 属性",
+                                hook_type, m_idx
+                            ));
+                        }
+                        Some(h) if !h.is_array() => {
+                            errors.push(format!(
+                                "hooks.{}[{}].hooks 不是数组",
+                                hook_type, m_idx
+                            ));
+                        }
+                        Some(hooks_arr) => {
+                            // 6. 每个 hook 必须有 type(string) 和 command(string)
+                            if let Some(arr) = hooks_arr.as_array() {
+                                for (h_idx, hook_val) in arr.iter().enumerate() {
+                                    if !hook_val.is_object() {
+                                        errors.push(format!(
+                                            "hooks.{}[{}].hooks[{}] 不是 object",
+                                            hook_type, m_idx, h_idx
+                                        ));
+                                        continue;
+                                    }
+                                    let h = hook_val.as_object().unwrap();
+                                    match h.get("type") {
+                                        None => errors.push(format!(
+                                            "hooks.{}[{}].hooks[{}] 缺少 type",
+                                            hook_type, m_idx, h_idx
+                                        )),
+                                        Some(t) if !t.is_string() => errors.push(format!(
+                                            "hooks.{}[{}].hooks[{}].type 不是 string",
+                                            hook_type, m_idx, h_idx
+                                        )),
+                                        _ => {}
+                                    }
+                                    match h.get("command") {
+                                        None => errors.push(format!(
+                                            "hooks.{}[{}].hooks[{}] 缺少 command",
+                                            hook_type, m_idx, h_idx
+                                        )),
+                                        Some(c) if !c.is_string() => errors.push(format!(
+                                            "hooks.{}[{}].hooks[{}].command 不是 string",
+                                            hook_type, m_idx, h_idx
+                                        )),
+                                        _ => {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
 /// 替换 hooks.json 中的变量
 /// ${CLAUDE_PLUGIN_ROOT} -> skill 实际路径
 fn resolve_hook_variables(command: &str, skill_path: &Path) -> String {
@@ -119,6 +221,22 @@ pub fn merge_skill_hooks(skill_path: &Path, skill_name: &str) -> Result<bool> {
 
     // 读取完整的 settings.json（保留所有字段）
     let mut settings = read_claude_settings_json()?;
+
+    // 前置验证：检查 skill hooks.json 结构
+    if let Ok(skill_hooks_value) = serde_json::to_value(&skill_hooks.hooks) {
+        if let Err(e) = validate_hooks_config(&skill_hooks_value) {
+            eprintln!("skill hooks.json 结构异常，中止合并: {}", e.join("; "));
+            return Ok(false);
+        }
+    }
+
+    // 前置验证：检查 settings.json 现有 hooks 结构
+    if let Some(existing_hooks) = settings.get("hooks") {
+        if let Err(e) = validate_hooks_config(existing_hooks) {
+            eprintln!("settings.json hooks 结构异常，中止合并: {}", e.join("; "));
+            return Ok(false);
+        }
+    }
 
     // 获取或创建 hooks 配置
     let mut hooks: HooksConfig = get_hooks_from_value(&settings).unwrap_or_default();
@@ -183,6 +301,14 @@ pub fn merge_skill_hooks(skill_path: &Path, skill_name: &str) -> Result<bool> {
 pub fn remove_skill_hooks(skill_name: &str) -> Result<bool> {
     // 读取完整的 settings.json（保留所有字段）
     let mut settings = read_claude_settings_json()?;
+
+    // 前置验证：检查 hooks 结构
+    if let Some(existing_hooks) = settings.get("hooks") {
+        if let Err(e) = validate_hooks_config(existing_hooks) {
+            eprintln!("settings.json hooks 结构异常，中止移除: {}", e.join("; "));
+            return Ok(false);
+        }
+    }
 
     let mut hooks = match get_hooks_from_value(&settings) {
         Some(h) => h,

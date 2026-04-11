@@ -1,7 +1,8 @@
 use chrono::Utc;
 use serde::Serialize;
 use std::collections::HashSet;
-use std::fs;
+use std::fs::{self, File};
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::State;
@@ -77,6 +78,34 @@ pub struct EnvironmentStatus {
     pub name: String,
     pub label: String,
     pub global_exists: bool,
+}
+
+/// 从 SKILL.md 的 YAML frontmatter 中提取 description 字段
+/// 使用 BufReader 逐行读取，遇到第二个 --- 即停止，不加载整个文件
+fn extract_description(skill_path: &Path) -> Option<String> {
+    let skill_file = skill_path.join("SKILL.md");
+    let file = File::open(&skill_file).ok()?;
+    let reader = BufReader::new(file);
+    let mut lines = reader.lines();
+    // 首行必须是 ---
+    let first = lines.next()?.ok()?;
+    if first.trim() != "---" {
+        return None;
+    }
+    // 逐行扫描 frontmatter，遇到 --- 结束
+    for line in lines {
+        let line = line.ok()?;
+        if line.trim() == "---" {
+            break;
+        }
+        if let Some(desc) = line.strip_prefix("description:") {
+            let desc = desc.trim().trim_matches('"').trim();
+            if !desc.is_empty() {
+                return Some(desc.to_string());
+            }
+        }
+    }
+    None
 }
 
 fn remove_path(path: &Path) -> std::io::Result<()> {
@@ -440,6 +469,12 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<ListSkillsResult,
         }
     }
 
+    // 补充 description（从 SKILL.md frontmatter 解析）
+    for skill in &mut valid_skills {
+        let path = Path::new(&skill.path);
+        skill.description = extract_description(path);
+    }
+
     Ok(ListSkillsResult {
         skills: valid_skills,
         cleaned_count,
@@ -501,6 +536,7 @@ pub async fn link_skill(path: String, state: State<'_, AppState>) -> Result<Vec<
             source: SkillSource::Linked,
             installed_environments: existing.and_then(|s| s.installed_environments),
             installed_at: Some(Utc::now().to_rfc3339()),
+            description: extract_description(dir),
         };
         registry.register(skill_info).map_err(|e| e.to_string())?;
         linked_names.push(skill_name);

@@ -137,6 +137,71 @@ function resolveHookVariables(command: string, skillPath: string): string {
 }
 
 /**
+ * 验证 hooks 配置结构是否符合规范
+ * 在合并/移除操作前调用，防止损坏 settings.json
+ */
+export function validateHooksConfig(hooks: unknown): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+
+  // 1. hooks 必须是非 null 的 object，且不是数组
+  if (hooks === null || hooks === undefined || typeof hooks !== 'object' || Array.isArray(hooks)) {
+    return { valid: false, errors: ['hooks 必须是非 null 的 object'] }
+  }
+
+  const hooksObj = hooks as Record<string, unknown>
+
+  for (const [hookType, matchers] of Object.entries(hooksObj)) {
+    // 2. 每个 hookType 的值必须是数组
+    if (!Array.isArray(matchers)) {
+      errors.push(`hooks.${hookType} 不是数组`)
+      continue
+    }
+
+    matchers.forEach((matcher, mIdx) => {
+      // 3. 每个 matcher 必须是 object
+      if (matcher === null || matcher === undefined || typeof matcher !== 'object' || Array.isArray(matcher)) {
+        errors.push(`hooks.${hookType}[${mIdx}] 不是 object`)
+        return
+      }
+
+      const m = matcher as Record<string, unknown>
+
+      // 4. matcher 字段如果存在必须是 string 或 null
+      if ('matcher' in m && m.matcher !== null && typeof m.matcher !== 'string') {
+        errors.push(`hooks.${hookType}[${mIdx}].matcher 不是 string/null`)
+      }
+
+      // 5. 必须有 hooks 属性且为数组
+      if (!('hooks' in m)) {
+        errors.push(`hooks.${hookType}[${mIdx}] 缺少 hooks 属性`)
+        return
+      }
+      if (!Array.isArray(m.hooks)) {
+        errors.push(`hooks.${hookType}[${mIdx}].hooks 不是数组`)
+        return
+      }
+
+      // 6. 每个 hook 必须有 type(string) 和 command(string)
+      m.hooks.forEach((hook: unknown, hIdx: number) => {
+        if (hook === null || hook === undefined || typeof hook !== 'object' || Array.isArray(hook)) {
+          errors.push(`hooks.${hookType}[${mIdx}].hooks[${hIdx}] 不是 object`)
+          return
+        }
+        const h = hook as Record<string, unknown>
+        if (!('type' in h) || typeof h.type !== 'string') {
+          errors.push(`hooks.${hookType}[${mIdx}].hooks[${hIdx}] 缺少 type 或 type 不是 string`)
+        }
+        if (!('command' in h) || typeof h.command !== 'string') {
+          errors.push(`hooks.${hookType}[${mIdx}].hooks[${hIdx}] 缺少 command 或 command 不是 string`)
+        }
+      })
+    })
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
+/**
  * 归一化 matcher：null/undefined 视为空 matcher
  */
 function normalizeMatcher(matcher: string | null | undefined): string {
@@ -157,7 +222,23 @@ export function mergeSkillHooks(skillPath: string, skillName: string): boolean {
     return false
   }
 
+  // 前置验证：检查 skill hooks.json 结构
+  const skillValidation = validateHooksConfig(skillHooks.hooks)
+  if (!skillValidation.valid) {
+    verbose(`skill hooks.json 结构异常，中止合并: ${skillValidation.errors.join('; ')}`)
+    return false
+  }
+
   const settings = readClaudeSettings()
+
+  // 前置验证：检查 settings.json 现有 hooks 结构
+  if (settings.hooks) {
+    const validation = validateHooksConfig(settings.hooks)
+    if (!validation.valid) {
+      verbose(`settings.json hooks 结构异常，中止合并: ${validation.errors.join('; ')}`)
+      return false
+    }
+  }
 
   // 确保 hooks 对象存在
   if (!settings.hooks) {
@@ -234,6 +315,13 @@ export function removeSkillHooks(skillName: string): boolean {
 
   if (!settings.hooks) {
     verbose('No hooks found in settings.json')
+    return false
+  }
+
+  // 前置验证：检查 hooks 结构
+  const validation = validateHooksConfig(settings.hooks)
+  if (!validation.valid) {
+    verbose(`settings.json hooks 结构异常，中止移除: ${validation.errors.join('; ')}`)
     return false
   }
 
