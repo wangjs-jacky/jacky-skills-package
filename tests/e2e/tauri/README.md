@@ -2,61 +2,74 @@
 
 ## 前置条件
 
-1. 已安装 `tauri-wd` CLI：
-   ```bash
-   cargo install tauri-webdriver-automation --locked
-   ```
-
-2. 已编译 debug 二进制（包含 webdriver 插件）：
+1. 已编译 debug 二进制（包含 webdriver 插件）：
    ```bash
    cd src-tauri && cargo build
    ```
 
+2. 已安装 `tauri-wd` CLI：
+   ```bash
+   cargo install tauri-webdriver-automation --locked
+   ```
+
 ## 运行步骤
 
-### 1. 启动前端开发服务器
-
-```bash
-pnpm dev:web
-```
-
-保持运行，等待 `http://localhost:5173` 可访问。
-
-### 2. 启动 tauri-wd WebDriver 服务
-
-```bash
-# 新开一个终端
-~/.cargo/bin/tauri-wd --port 4444
-```
-
-### 3. 运行 E2E 测试
-
-```bash
-# 新开一个终端
-npx wdio run wdio.tauri.conf.ts
-```
-
-### 一键运行（自动启动 dev server）
+### 一键运行
 
 ```bash
 pnpm test:e2e:tauri
 ```
 
-### Debug 模式
+### 手动运行
 
 ```bash
-pnpm test:e2e:tauri:debug
+# 1. 启动前端开发服务器
+pnpm dev:web
+
+# 2. 新终端：启动 WebDriver 服务
+~/.cargo/bin/tauri-wd --port 4444
+
+# 3. 新终端：运行测试
+NO_PROXY='*' npx wdio run wdio.tauri.conf.ts
+
+# 运行单个 spec
+NO_PROXY='*' npx wdio run wdio.tauri.conf.ts --spec ./tests/e2e/tauri/specs/skills-page.spec.ts
 ```
 
-## 测试文件结构
+## 目录结构
 
 ```
-e2e/tauri/
-├── app-launch.spec.ts      # 应用启动与窗口基线
-├── skills-page.spec.ts     # Skills 页面核心流程
-├── settings-page.spec.ts   # Settings 页面核心流程
-└── develop-page.spec.ts    # Develop 页面核心流程
+tests/e2e/tauri/
+├── pages/          # Page Object Model（页面对象）
+├── specs/          # 测试用例
+├── helpers/        # Tauri 命令封装 + 断言工具
+├── fixtures/       # 测试数据（mock skill）
+└── README.md
 ```
+
+## 选择器约定
+
+前端页面使用 `data-testid` 属性标识元素。选择器格式：
+
+```typescript
+// 正确 ✅
+$('[data-testid="skills-page"]')
+
+// 错误 ❌
+$('#skills-page')
+```
+
+## 测试覆盖
+
+| 页面 | 用例数 | 文件 |
+|------|--------|------|
+| 应用启动 | 5 | app-launch.spec.ts |
+| 导航 | 7 | navigation.spec.ts |
+| Skills | 6 | skills-page.spec.ts |
+| Settings | 5 | settings-page.spec.ts |
+| Develop | 7 | develop-page.spec.ts |
+| Monitor | 6 | monitor-page.spec.ts |
+| ClaudeMD | 4 | claudemd-page.spec.ts |
 
 ## 架构
 
@@ -72,7 +85,6 @@ WKWebView (真实 Tauri 窗口)
 
 ## 注意事项
 
-- E2E 测试需要 **真实的 macOS 窗口环境**（不支持 headless）
-- 测试期间会启动和关闭真实的 .app 应用
-- 插件仅在 debug 构建中启用，release 不受影响
+- 需要 **真实 macOS 窗口**（不支持 headless）
+- 插件仅在 **debug 构建** 中启用，release 不受影响
 - 每个测试 session 会启动独立的 app 进程
