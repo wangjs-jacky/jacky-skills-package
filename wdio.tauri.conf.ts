@@ -5,7 +5,7 @@ export const config: Options = {
   port: 4444,
   path: '/',
 
-  specs: ['./e2e/tauri/**/*.spec.ts'],
+  specs: ['./tests/e2e/tauri/specs/**/*.spec.ts'],
   maxInstances: 1,
 
   capabilities: [

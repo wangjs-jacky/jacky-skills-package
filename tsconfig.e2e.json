@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": " "ESNext",
-    "moduleResolution": " "bundler",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "lib": ["ES2022"],
     "strict": true,
     "esModuleInterop": true,
@@ -11,5 +11,5 @@
     "resolveJsonModule": true,
     "types": ["node", "@wdio/globals/types", "@wdio/mocha-framework"]
   },
-  "include": ["e2e/tauri/**/*.ts", "wdio.tauri.conf.ts"]
+  "include": ["tests/e2e/tauri/**/*.ts", "wdio.tauri.conf.ts"]
 }
