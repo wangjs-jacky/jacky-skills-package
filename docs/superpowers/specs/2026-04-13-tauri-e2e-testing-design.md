@@ -57,6 +57,26 @@ tests/e2e/
 
 ## Page Object Model
 
+### 选择器策略
+
+**关键约定**：前端页面使用 `data-testid` 属性标识元素，而非 `id`。
+
+```html
+<!-- 实际代码 -->
+<div data-testid="skills-page">...</div>
+<div data-testid="skills-stats">...</div>
+```
+
+```typescript
+// 正确选择器
+$('[data-testid="skills-page"]')
+
+// 错误选择器（不会匹配）
+$('#skills-page')
+```
+
+所有 POM 和 spec 中的选择器必须使用 `[data-testid="..."]` 格式。
+
 ### 基类
 
 ```typescript
@@ -69,13 +89,14 @@ export class BasePage {
     await this.waitForLoad()
   }
 
+  // 注意：页面元素使用 data-testid 而非 id
   async waitForLoad(timeout = 10000): Promise<void> {
-    const el = await $(`#${this.pageId}`)
+    const el = await $(`[data-testid="${this.pageId}"]`)
     await el.waitForExist({ timeout })
   }
 
   async isDisplayed(): Promise<boolean> {
-    const el = await $(`#${this.pageId}`)
+    const el = await $(`[data-testid="${this.pageId}"]`)
     return el.isDisplayed()
   }
 
@@ -96,10 +117,11 @@ import { BasePage } from './base.page'
 export class SkillsPage extends BasePage {
   protected get pageId() { return 'skills-page' }
 
-  get statsBar() { return $('#skills-stats') }
-  get searchInput() { return $('#skills-search-input') }
-  get skillsList() { return $('#skills-list') }
-  get emptyState() { return $('#skills-empty-state') }
+  // 所有选择器使用 data-testid
+  get statsBar() { return $('[data-testid="skills-stats"]') }
+  get searchInput() { return $('[data-testid="skills-search-input"]') }
+  get skillsList() { return $('[data-testid="skills-list"]') }
+  get emptyState() { return $('[data-testid="skills-empty-state"]') }
 
   async getStatsText(): Promise<string> {
     return this.statsBar.getText()
