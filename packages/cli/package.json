@@ -1,6 +1,6 @@
 {
   "name": "@wangjs-jacky/j-skills",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "CLI tool for managing Agent Skills - link, install, and manage skills across 35+ coding agent environments",
   "type": "module",
   "bin": {
