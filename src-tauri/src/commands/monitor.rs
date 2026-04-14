@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -7,9 +7,12 @@ use crate::utils::paths::get_claude_settings_path;
 use crate::Result;
 
 const MONITOR_MARKER: &str = "# monitor: claude-monitor";
+const SKILL_MARKER: &str = "# skill: claude-monitor";
 const MONITOR_HOOKS_DIR: &str = ".claude-monitor/hooks";
 const MONITOR_PORT: u16 = 17530;
-const MONITOR_DAEMON_URL: &str = "http://localhost:17530/api/health";
+const MONITOR_DAEMON_URL: &str = "http://127.0.0.1:17530/api/health";
+const MONITOR_CONFIG_DIR: &str = ".config/j-skills";
+const MONITOR_CONFIG_FILE: &str = "monitor-config.json";
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -39,6 +42,49 @@ fn get_home_dir() -> Result<PathBuf> {
 fn get_hooks_dir() -> Result<PathBuf> {
     let home = get_home_dir()?;
     Ok(home.join(MONITOR_HOOKS_DIR))
+}
+
+fn get_monitor_config_path() -> Result<PathBuf> {
+    let home = get_home_dir()?;
+    Ok(home.join(MONITOR_CONFIG_DIR).join(MONITOR_CONFIG_FILE))
+}
+
+fn ensure_monitor_config_dir() -> Result<PathBuf> {
+    let home = get_home_dir()?;
+    let dir = home.join(MONITOR_CONFIG_DIR);
+    if !dir.exists() {
+        fs::create_dir_all(&dir)?;
+    }
+    Ok(dir)
+}
+
+/// 读取监控配置（悬浮弹窗开关等）
+#[tauri::command]
+pub fn monitor_get_config() -> Result<serde_json::Value> {
+    let config_path = get_monitor_config_path()?;
+
+    if !config_path.exists() {
+        // 默认配置：悬浮弹窗关闭
+        return Ok(serde_json::json!({
+            "floatingWindow": { "enabled": false }
+        }));
+    }
+
+    let content = fs::read_to_string(&config_path)?;
+    let config: serde_json::Value = serde_json::from_str(&content)?;
+    Ok(config)
+}
+
+/// 写入监控配置
+#[tauri::command]
+pub fn monitor_set_config(config: serde_json::Value) -> Result<serde_json::Value> {
+    ensure_monitor_config_dir()?;
+
+    let config_path = get_monitor_config_path()?;
+    let content = serde_json::to_string_pretty(&config)?;
+    fs::write(&config_path, content)?;
+
+    Ok(config)
 }
 
 /// Monitor hooks 定义：与 claude-monitor CLI showHooksConfig() 一致
@@ -91,7 +137,7 @@ pub fn monitor_check_hooks() -> Result<MonitorCheckResult> {
     let settings_path = get_claude_settings_path()?;
     let installed = if settings_path.exists() {
         let content = fs::read_to_string(&settings_path)?;
-        content.contains(MONITOR_MARKER)
+        content.contains(MONITOR_MARKER) || content.contains(SKILL_MARKER)
     } else {
         false
     };
@@ -125,6 +171,33 @@ pub fn monitor_install_hooks() -> Result<MonitorOperationResult> {
     // 获取或创建 hooks 对象
     if settings.get("hooks").is_none() {
         settings["hooks"] = serde_json::json!({});
+    }
+
+    // 先清理旧标记（# skill: claude-monitor）的 hooks，避免重复
+    if let Some(hooks) = settings.get_mut("hooks").and_then(|h| h.as_object_mut()) {
+        let hook_types: Vec<String> = hooks.keys().cloned().collect();
+        for hook_type in &hook_types {
+            if let Some(matchers) = hooks.get_mut(hook_type).and_then(|m| m.as_array_mut()) {
+                let mut i = matchers.len();
+                while i > 0 {
+                    i -= 1;
+                    if let Some(hooks_arr) = matchers[i].get_mut("hooks").and_then(|h| h.as_array_mut()) {
+                        hooks_arr.retain(|h| {
+                            h.get("command")
+                                .and_then(|c| c.as_str())
+                                .map(|c| !c.contains(SKILL_MARKER))
+                                .unwrap_or(true)
+                        });
+                        if hooks_arr.is_empty() {
+                            matchers.remove(i);
+                        }
+                    }
+                }
+                if matchers.is_empty() {
+                    hooks.remove(hook_type);
+                }
+            }
+        }
     }
 
     let monitor_hooks = get_monitor_hooks_definition();
@@ -232,7 +305,7 @@ pub fn monitor_uninstall_hooks() -> Result<MonitorOperationResult> {
                         hooks_arr.retain(|h| {
                             h.get("command")
                                 .and_then(|c| c.as_str())
-                                .map(|c| !c.contains(MONITOR_MARKER))
+                                .map(|c| !c.contains(MONITOR_MARKER) && !c.contains(SKILL_MARKER))
                                 .unwrap_or(true)
                         });
                         if hooks_arr.is_empty() {
@@ -329,4 +402,79 @@ pub fn monitor_stop_daemon() -> Result<MonitorOperationResult> {
         .output();
 
     Ok(MonitorOperationResult { success: true })
+}
+
+// ========== 通用 HTTP 代理（绕过 CORS） ==========
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FetchParams {
+    pub method: String,
+    pub path: String,
+    #[serde(default)]
+    pub body: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FetchResult {
+    pub ok: bool,
+    pub status: u16,
+    pub data: serde_json::Value,
+}
+
+/// 通用 daemon HTTP 代理 — 前端通过 Tauri invoke 调用，Rust 侧 curl 转发，绕过 CORS
+#[tauri::command]
+pub fn monitor_fetch(params: FetchParams) -> Result<FetchResult> {
+    let url = format!("http://127.0.0.1:{}{}", MONITOR_PORT, params.path);
+
+    let mut cmd = Command::new("curl");
+    cmd.args(["-s", "-w", "\n__HTTP_CODE__%{http_code}"]);
+
+    match params.method.to_uppercase().as_str() {
+        "GET" => {
+            cmd.args(["-X", "GET", &url]);
+        }
+        "DELETE" => {
+            cmd.args(["-X", "DELETE", &url]);
+        }
+        "POST" | "PUT" => {
+            cmd.args(["-X", &params.method.to_uppercase(), &url]);
+            if let Some(ref body) = params.body {
+                let body_str = serde_json::to_string(body)?;
+                cmd.args(["-H", "Content-Type: application/json", "-d", &body_str]);
+            }
+        }
+        _ => {
+            return Err(crate::AppError::InvalidPath(format!(
+                "Unsupported HTTP method: {}",
+                params.method
+            )));
+        }
+    }
+
+    cmd.arg("--max-time").arg("5");
+
+    let output = cmd.output()?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // curl 输出格式: <response body>\n__HTTP_CODE__<status code>
+    let (body, status) = if let Some(idx) = stdout.rfind("\n__HTTP_CODE__") {
+        let body_part = &stdout[..idx];
+        let status_part = &stdout[idx + "__HTTP_CODE__".len() + 1..];
+        let status: u16 = status_part.trim().parse().unwrap_or(0);
+        (body_part.to_string(), status)
+    } else {
+        (stdout.to_string(), 0)
+    };
+
+    let data: serde_json::Value = serde_json::from_str(&body).unwrap_or(serde_json::json!({
+        "raw": body
+    }));
+
+    Ok(FetchResult {
+        ok: status >= 200 && status < 300,
+        status,
+        data,
+    })
 }

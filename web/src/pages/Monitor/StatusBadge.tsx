@@ -22,14 +22,14 @@ export default function StatusBadge({ status, showLabel = true }: StatusBadgePro
   return (
     <span
       data-testid={`status-badge-${status}`}
-      className="inline-flex items-center gap-1.5 font-mono text-xs"
+      className="inline-flex items-center gap-1.5 text-xs"
     >
       <span
         className={`w-2 h-2 rounded-full ${config.pulse ? 'animate-pulse' : ''}`}
         style={{ backgroundColor: config.color, boxShadow: config.pulse ? `0 0 6px ${config.color}` : 'none' }}
       />
       {showLabel && (
-        <span style={{ color: config.color }}>{config.label}</span>
+        <span className="text-xs" style={{ color: config.color }}>{config.label}</span>
       )}
     </span>
   )

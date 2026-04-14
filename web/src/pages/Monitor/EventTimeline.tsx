@@ -1,5 +1,3 @@
-import { useState } from 'react'
-import { ChevronDown, ChevronRight, Activity } from 'lucide-react'
 import type { SessionEvent } from '../../api/monitor'
 
 interface EventTimelineProps {
@@ -23,63 +21,55 @@ function formatEventTime(ts: number): string {
 }
 
 export default function EventTimeline({ events }: EventTimelineProps) {
-  const [collapsed, setCollapsed] = useState(false)
-
   if (events.length === 0) return null
 
   return (
-    <div data-testid="event-timeline" className="mt-6">
+    <div data-testid="event-timeline">
       {/* 标题栏 */}
-      <button
-        data-testid="event-timeline-toggle"
-        onClick={() => setCollapsed(!collapsed)}
-        className="w-full flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/[0.02] transition-colors text-left"
-      >
-        {collapsed ? (
-          <ChevronRight size={14} className="text-[var(--color-text-muted)]" />
-        ) : (
-          <ChevronDown size={14} className="text-[var(--color-text-muted)]" />
-        )}
-        <Activity size={14} className="text-[var(--color-primary)]" />
-        <span className="font-mono text-sm font-medium text-[var(--color-text-muted)]">
-          Events
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[var(--color-blue)] text-sm">◈</span>
+        <span className="font-mono text-xs font-semibold text-[var(--color-text-secondary)] tracking-[2px]">
+          EVENTS
         </span>
-        <span className="text-[10px] font-mono text-[var(--color-text-muted)]">
-          ({events.length})
+        <span
+          className="flex items-center px-2 py-[2px] rounded text-[10px] font-mono font-semibold text-[var(--color-blue)]"
+          style={{ background: 'rgba(0, 212, 255, 0.12)' }}
+        >
+          {events.length}
         </span>
-      </button>
+      </div>
 
       {/* 事件列表 */}
-      {!collapsed && (
-        <div data-testid="event-timeline-list" className="mt-1 space-y-0.5 max-h-64 overflow-y-auto px-2">
-          {events.map((event, index) => {
-            const config = EVENT_LABELS[event.type] ?? { label: event.type, color: 'var(--color-text-muted)' }
-            return (
-              <div
-                key={event.id ?? index}
-                data-testid={`event-item-${index}`}
-                className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-white/[0.02] text-xs font-mono group"
-              >
-                <span className="text-[var(--color-text-muted)] flex-shrink-0 w-16">
-                  {formatEventTime(event.timestamp)}
+      <div data-testid="event-timeline-list" className="space-y-0.5 max-h-64 overflow-y-auto">
+        {events.map((event, index) => {
+          const config = EVENT_LABELS[event.type] ?? { label: event.type, color: 'var(--color-text-muted)' }
+          return (
+            <div
+              key={`${event.id ?? 'evt'}-${index}`}
+              data-testid={`event-item-${index}`}
+              className="flex items-center gap-3 px-3 py-1.5 rounded-md text-xs font-mono"
+              style={{ background: 'rgba(255,255,255,0.01)' }}
+            >
+              <span className="text-[var(--color-text-muted)] flex-shrink-0 w-14">
+                {formatEventTime(event.timestamp)}
+              </span>
+              <span style={{ color: config.color }} className="flex-shrink-0">▸</span>
+              <span className="flex-shrink-0" style={{ color: config.color }}>
+                {config.label}
+              </span>
+              <span className="h-2.5 w-px bg-[var(--color-border)]" />
+              <span className="text-[var(--color-text)] truncate">
+                {event.project}
+              </span>
+              {event.message && (
+                <span className="text-[var(--color-text-muted)] truncate">
+                  {event.message}
                 </span>
-                <span style={{ color: config.color }} className="flex-shrink-0">▸</span>
-                <span className="text-[var(--color-text-muted)] flex-shrink-0">
-                  {config.label}
-                </span>
-                <span className="text-[var(--color-text)] truncate">
-                  {event.project}
-                </span>
-                {event.message && (
-                  <span className="text-[var(--color-text-muted)] truncate">
-                    {event.message}
-                  </span>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

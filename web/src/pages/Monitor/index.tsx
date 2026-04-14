@@ -1,31 +1,46 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Activity, Power, PowerOff, Loader2, WifiOff, Radio } from 'lucide-react'
-import { monitorApi, type Session, type SessionEvent } from '../../api/monitor'
+import { Loader2, WifiOff, Bell, BellOff, AlertCircle } from 'lucide-react'
+import { monitorApi, type Session, type SessionEvent, type MonitorConfig, type MonitorCheckResult, type MonitorApiError } from '../../api/monitor'
 import { useMonitorWebSocket } from '../../hooks/useMonitorWebSocket'
+import { useDaemonHealth } from '../../hooks/useDaemonHealth'
 import { useStore } from '../../stores'
 import SessionCard from './SessionCard'
 import EventTimeline from './EventTimeline'
+import DaemonSetupGuide from './DaemonSetupGuide'
+
+// ========== 状态机 ==========
+
+type MonitorPhase =
+  | { type: 'loading' }
+  | { type: 'ready' }
+  | { type: 'error'; error: MonitorApiError }
+  | { type: 'daemon_offline' }
 
 export default function MonitorPage() {
   const { showToast } = useStore()
 
-  // 状态
-  const [hooksInstalled, setHooksInstalled] = useState(false)
-  const [hooksDirExists, setHooksDirExists] = useState(false)
+  // 状态机
+  const [phase, setPhase] = useState<MonitorPhase>({ type: 'loading' })
   const [daemonRunning, setDaemonRunning] = useState(false)
-  const [checking, setChecking] = useState(true)
-  const [operating, setOperating] = useState(false)
 
   // 数据
   const [sessions, setSessions] = useState<Session[]>([])
   const [events, setEvents] = useState<SessionEvent[]>([])
+  const [floatingWindowEnabled, setFloatingWindowEnabled] = useState(false)
+  const [hooksStatus, setHooksStatus] = useState<MonitorCheckResult | null>(null)
 
-  // 监控是否启用（hooks 已注入）
-  const enabled = hooksInstalled
+  // 操作中状态
+  const [toggling, setToggling] = useState(false)
+  const [startingDaemon, setStartingDaemon] = useState(false)
+  const [installingHooks, setInstallingHooks] = useState(false)
+  const [killingPid, setKillingPid] = useState<number | null>(null)
 
-  // WebSocket 连接
-  const { connected, reconnecting } = useMonitorWebSocket({
-    enabled: enabled && daemonRunning,
+  // 初始化错误（传递给 DaemonSetupGuide）
+  const [initError, setInitError] = useState<MonitorApiError | null>(null)
+
+  // WebSocket 连接（守护进程运行时自动连接）
+  const { connected, reconnecting, lastError: wsError } = useMonitorWebSocket({
+    enabled: daemonRunning,
     onSessionsInit: (s) => setSessions(s),
     onSessionUpdate: (session) => {
       setSessions((prev) => {
@@ -44,110 +59,200 @@ export default function MonitorPage() {
     onNewEvent: (event) => {
       setEvents((prev) => [event, ...prev].slice(0, 50))
     },
+    onError: (error) => {
+      console.error('[monitor] WebSocket error:', error)
+    },
+    onReconnected: () => {
+      showToast('WebSocket 已重新连接', 'success')
+    },
   })
 
-  // 初始化检查
-  useEffect(() => {
-    async function check() {
-      setChecking(true)
-      try {
-        const hooksResult = await monitorApi.checkHooks()
-        setHooksInstalled(hooksResult.installed)
-        setHooksDirExists(hooksResult.hooksDirExists)
+  // ========== 数据加载 ==========
 
-        if (hooksResult.installed) {
-          const daemonResult = await monitorApi.checkDaemon()
-          setDaemonRunning(daemonResult.running)
+  const loadDaemonData = useCallback(async (showErrors = true) => {
+    const results = await Promise.allSettled([
+      monitorApi.getSessions(),
+      monitorApi.getEvents(),
+      monitorApi.getConfig(),
+      monitorApi.checkHooks(),
+    ])
 
-          if (daemonResult.running) {
-            // 初始加载
-            const [sessionsData, eventsData] = await Promise.all([
-              monitorApi.getSessions(),
-              monitorApi.getEvents(),
-            ])
-            setSessions(sessionsData)
-            setEvents(eventsData.slice(-50).reverse())
-          }
-        }
-      } catch (err) {
-        console.error('[monitor] Init check failed:', err)
-      } finally {
-        setChecking(false)
+    // Sessions
+    if (results[0].status === 'fulfilled') {
+      const r = results[0].value
+      if (r.ok) {
+        setSessions(r.data)
+      } else if (showErrors) {
+        showToast(`加载会话失败: ${r.error.message}`, 'error')
       }
     }
-    check()
-  }, [])
 
-  // 启用监控
-  const handleEnable = useCallback(async () => {
-    setOperating(true)
-    try {
-      const installResult = await monitorApi.installHooks()
-      if (!installResult.success) {
-        showToast('Hooks 注入失败', 'error')
-        return
+    // Events
+    if (results[1].status === 'fulfilled') {
+      const r = results[1].value
+      if (r.ok) {
+        setEvents(r.data.slice(-50).reverse())
+      } else if (showErrors) {
+        showToast(`加载事件失败: ${r.error.message}`, 'error')
       }
-      setHooksInstalled(true)
+    }
 
-      // 启动 daemon
-      const daemonResult = await monitorApi.startDaemon()
-      setDaemonRunning(daemonResult.running)
-
-      if (daemonResult.running) {
-        showToast('监控已启用', 'success')
-      } else {
-        showToast('Hooks 已注入，但 Daemon 启动失败', 'error')
+    // Config
+    if (results[2].status === 'fulfilled') {
+      const r = results[2].value
+      if (r.ok) {
+        setFloatingWindowEnabled(r.data.floatingWindow.enabled)
       }
-    } catch (err) {
-      showToast('启用监控失败', 'error')
-    } finally {
-      setOperating(false)
+    }
+
+    // Hooks
+    if (results[3].status === 'fulfilled') {
+      const r = results[3].value
+      if (r.ok) {
+        setHooksStatus(r.data)
+      }
     }
   }, [showToast])
 
-  // 禁用监控
-  const handleDisable = useCallback(async () => {
-    setOperating(true)
-    try {
-      // 先停止 daemon
-      if (daemonRunning) {
-        await monitorApi.stopDaemon()
-        setDaemonRunning(false)
-      }
+  // ========== 健康检查 ==========
 
-      // 移除 hooks
-      await monitorApi.uninstallHooks()
-      setHooksInstalled(false)
-      setSessions([])
-      setEvents([])
-      showToast('监控已禁用', 'success')
-    } catch (err) {
-      showToast('禁用监控失败', 'error')
-    } finally {
-      setOperating(false)
+  const { consecutiveFailures, checkNow } = useDaemonHealth({
+    enabled: phase.type === 'daemon_offline' || (phase.type === 'ready' && !daemonRunning),
+    onOnline: async () => {
+      setDaemonRunning(true)
+      setPhase({ type: 'ready' })
+      await loadDaemonData(false)
+      showToast('守护进程已上线', 'success')
+    },
+    onOffline: () => {
+      setDaemonRunning(false)
+      setPhase({ type: 'daemon_offline' })
+    },
+  })
+
+  // ========== 初始化 ==========
+
+  const init = useCallback(async () => {
+    setPhase({ type: 'loading' })
+    setInitError(null)
+
+    // 步骤1：检查 daemon
+    const daemonResult = await monitorApi.checkDaemon()
+    if (!daemonResult.ok) {
+      setInitError(daemonResult.error)
+      setPhase({ type: 'error', error: daemonResult.error })
+      return
     }
-  }, [daemonRunning, showToast])
 
-  // 启动 daemon
+    if (!daemonResult.data.running) {
+      // 并行加载 hooks 状态和 config
+      const [hooksResult, configResult] = await Promise.all([
+        monitorApi.checkHooks(),
+        monitorApi.getConfig(),
+      ])
+      if (hooksResult.ok) setHooksStatus(hooksResult.data)
+      if (configResult.ok) setFloatingWindowEnabled(configResult.data.floatingWindow.enabled)
+
+      setPhase({ type: 'daemon_offline' })
+      return
+    }
+
+    // 步骤2：daemon 在线，加载数据
+    setDaemonRunning(true)
+    await loadDaemonData()
+    setPhase({ type: 'ready' })
+  }, [loadDaemonData])
+
+  useEffect(() => {
+    init()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ========== 操作 ==========
+
   const handleStartDaemon = useCallback(async () => {
-    setOperating(true)
+    setStartingDaemon(true)
     try {
       const result = await monitorApi.startDaemon()
-      setDaemonRunning(result.running)
-      if (result.running) {
-        showToast('Daemon 已启动', 'success')
-      } else {
-        showToast('Daemon 启动失败，请检查 claude-monitor 是否已安装', 'error')
+      if (result.ok && result.data.running) {
+        setDaemonRunning(true)
+        setPhase({ type: 'ready' })
+        await loadDaemonData()
+        showToast('守护进程已启动', 'success')
+      } else if (result.ok && !result.data.running) {
+        showToast('启动失败：daemon 仍未响应，请确认已安装 claude-monitor', 'error')
+      } else if (!result.ok) {
+        showToast(`启动失败: ${result.error.message}`, 'error')
       }
-    } catch (err) {
-      showToast('启动 Daemon 失败', 'error')
+    } catch {
+      showToast('启动守护进程失败', 'error')
     } finally {
-      setOperating(false)
+      setStartingDaemon(false)
+    }
+  }, [loadDaemonData, showToast])
+
+  const handleInstallHooks = useCallback(async () => {
+    setInstallingHooks(true)
+    try {
+      const result = await monitorApi.installHooks()
+      if (result.ok && result.data.success) {
+        setHooksStatus({ installed: true, hooksDirExists: true })
+        showToast('Hooks 安装成功', 'success')
+      } else if (!result.ok) {
+        showToast(`Hooks 安装失败: ${result.error.message}`, 'error')
+      } else {
+        showToast('Hooks 安装失败', 'error')
+      }
+    } catch {
+      showToast('Hooks 安装失败', 'error')
+    } finally {
+      setInstallingHooks(false)
     }
   }, [showToast])
 
-  // 加载中
-  if (checking) {
+  const handleToggleFloatingWindow = useCallback(async () => {
+    setToggling(true)
+    try {
+      const newConfig: MonitorConfig = {
+        floatingWindow: { enabled: !floatingWindowEnabled },
+      }
+      const result = await monitorApi.setConfig(newConfig)
+      if (result.ok) {
+        setFloatingWindowEnabled(!floatingWindowEnabled)
+        showToast(
+          floatingWindowEnabled ? '悬浮弹窗已关闭' : '悬浮弹窗已开启',
+          'success',
+        )
+      } else {
+        showToast('切换悬浮弹窗失败', 'error')
+      }
+    } catch {
+      showToast('切换悬浮弹窗失败', 'error')
+    } finally {
+      setToggling(false)
+    }
+  }, [floatingWindowEnabled, showToast])
+
+  const handleKillSession = useCallback(async (pid: number) => {
+    setKillingPid(pid)
+    try {
+      const result = await monitorApi.killSession(pid)
+      if (result.ok) {
+        setSessions((prev) => prev.filter((s) => s.pid !== pid))
+        showToast('会话已关闭', 'success')
+      } else {
+        showToast(`关闭会话失败: ${result.error.message}`, 'error')
+      }
+    } catch {
+      showToast('关闭会话失败', 'error')
+    } finally {
+      setKillingPid(null)
+    }
+  }, [showToast])
+
+  // ========== 渲染 ==========
+
+  // 加载态
+  if (phase.type === 'loading') {
     return (
       <div data-testid="monitor-loading" className="flex flex-col items-center justify-center h-64 gap-4">
         <div className="relative">
@@ -159,179 +264,242 @@ export default function MonitorPage() {
     )
   }
 
+  // 初始化错误态
+  if (phase.type === 'error') {
+    return (
+      <div data-testid="monitor-error" className="relative z-10 animate-fade-in">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" style={{ boxShadow: '0 0 8px rgba(0,255,136,0.4)' }} />
+            <span className="font-mono text-lg font-bold tracking-[3px] text-[var(--color-text)]">MONITOR</span>
+            <span className="h-4 w-px bg-[rgba(255,255,255,0.1)]" />
+            <span className="font-mono text-xs text-[var(--color-text-muted)]">Claude Code Session Tracker</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center justify-center py-16 gap-4">
+          <div className="w-16 h-16 rounded-full bg-[var(--color-red)]/10 flex items-center justify-center">
+            <AlertCircle size={24} className="text-[var(--color-red)]" />
+          </div>
+          <p className="text-sm font-mono text-[var(--color-red)]">初始化失败</p>
+          <p className="text-xs font-mono text-[var(--color-text-muted)]">{phase.error.message}</p>
+          <button
+            onClick={init}
+            className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-lg font-mono text-xs
+              bg-[var(--color-primary-dim)] border border-[var(--color-primary)]/30 text-[var(--color-primary)]
+              hover:bg-[var(--color-primary)]/20 transition-all duration-300"
+          >
+            重试
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Daemon 离线态
+  if (phase.type === 'daemon_offline' || !daemonRunning) {
+    return (
+      <div data-testid="monitor-page" className="relative z-10 animate-fade-in">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" style={{ boxShadow: '0 0 8px rgba(0,255,136,0.4)' }} />
+            <span className="font-mono text-lg font-bold tracking-[3px] text-[var(--color-text)]">MONITOR</span>
+            <span className="h-4 w-px bg-[rgba(255,255,255,0.1)]" />
+            <span className="font-mono text-xs text-[var(--color-text-muted)]">Claude Code Session Tracker</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1.5 text-[10px] font-mono text-[var(--color-text-muted)]">
+              <WifiOff size={10} />
+              Daemon: Offline
+            </span>
+          </div>
+        </div>
+
+        <DaemonSetupGuide
+          initError={initError}
+          consecutiveFailures={consecutiveFailures}
+          starting={startingDaemon}
+          onStartDaemon={handleStartDaemon}
+          installingHooks={installingHooks}
+          onInstallHooks={handleInstallHooks}
+          hooksStatus={hooksStatus}
+          onRetry={async () => {
+            const online = await checkNow()
+            if (online) {
+              setDaemonRunning(true)
+              setPhase({ type: 'ready' })
+              await loadDaemonData()
+              showToast('守护进程已上线', 'success')
+            }
+          }}
+        />
+      </div>
+    )
+  }
+
+  // 正常态 (phase.type === 'ready' && daemonRunning)
+
+  // 统计计算
+  const totalSubagents = sessions.reduce((sum, s) => sum + (s.activeSubagentsCount ?? s.activeSubagents?.length ?? 0), 0)
+  const totalActiveTools = sessions.reduce((sum, s) => sum + (s.activeToolsCount ?? s.activeTools?.length ?? 0), 0)
+
   return (
     <div data-testid="monitor-page" className="relative z-10 animate-fade-in">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="relative">
-            <Activity size={24} className="text-[var(--color-primary)]" />
-            <div className="absolute inset-0 text-[var(--color-primary)] blur-lg animate-pulse">
-              <Activity size={24} />
-            </div>
-          </div>
-          <h2 className="text-3xl font-bold font-mono tracking-tight">
-            <span className="gradient-text">Monitor</span>
-          </h2>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <span
+            className="w-2 h-2 rounded-full bg-[var(--color-primary)] flex-shrink-0"
+            style={{ boxShadow: '0 0 8px rgba(0,255,136,0.4)' }}
+          />
+          <span className="font-mono text-lg font-bold tracking-[3px] text-[var(--color-text)]">MONITOR</span>
+          <span className="h-4 w-px bg-[rgba(255,255,255,0.1)]" />
+          <span className="font-mono text-xs text-[var(--color-text-muted)]">Claude Code Session Tracker</span>
         </div>
-        <p className="text-[var(--color-text-muted)] font-mono text-sm">
-          Visualize your active Claude Code sessions
-        </p>
-      </div>
 
-      {/* 控制面板 */}
-      <div className="mb-6 glass-card rounded-xl p-4 space-y-3">
         <div className="flex items-center gap-4">
-          {/* 主开关 */}
+          {/* WebSocket 状态 */}
+          {connected && (
+            <span
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono text-[var(--color-primary)]"
+              style={{ background: 'rgba(0, 255, 136, 0.12)' }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
+              WebSocket Connected
+            </span>
+          )}
+
+          {/* Daemon 状态 */}
+          <span
+            className="flex items-center px-2.5 py-1 rounded-md text-[10px] font-mono text-[var(--color-primary)]"
+            style={{
+              background: 'rgba(0, 255, 136, 0.12)',
+              border: '1px solid rgba(0, 255, 136, 0.15)',
+            }}
+          >
+            Daemon Running
+          </span>
+
+          {/* 悬浮弹窗开关 */}
           <button
-            data-testid="monitor-toggle"
-            onClick={enabled ? handleDisable : handleEnable}
-            disabled={operating}
+            data-testid="floating-window-toggle"
+            onClick={handleToggleFloatingWindow}
+            disabled={toggling}
             className={`
-              relative flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-sm font-medium
+              flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono
               border transition-all duration-300
-              ${enabled
+              ${floatingWindowEnabled
                 ? 'bg-[var(--color-primary-dim)] border-[var(--color-primary)]/30 text-[var(--color-primary)]'
-                : 'bg-white/[0.02] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-dim)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)]'
+                : 'bg-white/[0.03] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-primary-dim)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)]'
               }
               disabled:opacity-50
             `}
           >
-            {operating ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : enabled ? (
-              <PowerOff size={14} />
+            {toggling ? (
+              <Loader2 size={10} className="animate-spin" />
+            ) : floatingWindowEnabled ? (
+              <span>🔔</span>
             ) : (
-              <Power size={14} />
+              <span>🔕</span>
             )}
-            <span>{enabled ? 'Disable Monitor' : 'Enable Monitor'}</span>
+            <span>悬浮弹窗: {floatingWindowEnabled ? 'ON' : 'OFF'}</span>
           </button>
 
-          {/* 状态指示 */}
-          <div className="flex items-center gap-4 text-xs font-mono text-[var(--color-text-muted)]">
-            <span className="flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${hooksInstalled ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-red)]'}`} />
-              Hooks: {hooksInstalled ? 'Injected' : 'Not injected'}
+          {/* 重连中 */}
+          {reconnecting && (
+            <span className="flex items-center gap-1.5 text-[10px] font-mono text-[var(--color-amber)]">
+              <Loader2 size={10} className="animate-spin" />
+              Reconnecting...
             </span>
+          )}
 
-            {enabled && (
-              <span className="flex items-center gap-1.5">
-                {daemonRunning ? (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-[var(--color-primary)] animate-pulse" />
-                    Daemon: Running
-                  </>
-                ) : reconnecting ? (
-                  <>
-                    <Loader2 size={10} className="animate-spin" />
-                    Reconnecting...
-                  </>
-                ) : (
-                  <>
-                    <WifiOff size={10} />
-                    Daemon: Offline
-                  </>
-                )}
-              </span>
-            )}
-          </div>
+          {/* WS 错误 */}
+          {wsError && (
+            <span className="text-[10px] font-mono text-[var(--color-amber)]">{wsError}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Stats Bar */}
+      <div
+        data-testid="monitor-stats"
+        className="flex items-center gap-6 mb-5 px-4 py-2.5 rounded-xl"
+        style={{
+          background: 'var(--color-bg-elevated)',
+          border: '1px solid var(--color-border)',
+        }}
+      >
+        {/* Sessions */}
+        <span className="flex items-center gap-2 text-sm">
+          <span>⚡</span>
+          <span className="font-mono text-base font-bold text-[var(--color-primary)]">{sessions.length}</span>
+          <span className="font-mono text-[11px] text-[var(--color-text-muted)]">active sessions</span>
+        </span>
+
+        <span className="h-5 w-px bg-[var(--color-border)]" />
+
+        {/* Subagents */}
+        <span className="flex items-center gap-2">
+          <span className="font-mono text-base font-bold text-[var(--color-blue)]">{totalSubagents}</span>
+          <span className="font-mono text-[11px] text-[var(--color-text-muted)]">subagents</span>
+        </span>
+
+        <span className="h-5 w-px bg-[var(--color-border)]" />
+
+        {/* Active Tools */}
+        <span className="flex items-center gap-2">
+          <span className="font-mono text-base font-bold text-[var(--color-amber)]">{totalActiveTools}</span>
+          <span className="font-mono text-[11px] text-[var(--color-text-muted)]">active tools</span>
+        </span>
+      </div>
+
+      {/* Sessions Section */}
+      <div className="mb-6">
+        {/* Section Header */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[var(--color-primary)] text-sm">◉</span>
+          <span className="font-mono text-xs font-semibold text-[var(--color-text-secondary)] tracking-[2px]">SESSIONS</span>
+          {sessions.length > 0 && (
+            <span
+              className="flex items-center px-2 py-[2px] rounded text-[10px] font-mono font-semibold text-[var(--color-primary)]"
+              style={{ background: 'rgba(0, 255, 136, 0.12)' }}
+            >
+              {sessions.length}
+            </span>
+          )}
         </div>
 
-        {/* Daemon 离线时的启动按钮 */}
-        {enabled && !daemonRunning && (
-          <div className="flex items-center gap-3">
-            <button
-              data-testid="start-daemon-btn"
-              onClick={handleStartDaemon}
-              disabled={operating}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono text-xs border border-[var(--color-amber)]/30 bg-[var(--color-amber-dim)] text-[var(--color-amber)] hover:border-[var(--color-amber)]/50 transition-all disabled:opacity-50"
-            >
-              <Radio size={12} />
-              Start Daemon
-            </button>
-            <span className="text-[10px] font-mono text-[var(--color-text-muted)]">
-              Make sure claude-monitor is installed: npx @wangjs-jacky/claude-monitor init
-            </span>
+        {/* Session Rows — 全宽行式布局 */}
+        {sessions.length > 0 ? (
+          <div data-testid="session-grid" className="flex flex-col gap-2">
+            {sessions.map((session) => (
+              <SessionCard
+                key={session.pid}
+                session={session}
+                onKill={handleKillSession}
+                killing={killingPid === session.pid}
+              />
+            ))}
           </div>
-        )}
-
-        {/* Hooks 目录不存在时的提示 */}
-        {!hooksDirExists && (
-          <div className="text-[10px] font-mono text-[var(--color-amber)]">
-            Hooks directory not found. Run: npx @wangjs-jacky/claude-monitor init
+        ) : (
+          <div data-testid="no-sessions" className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="w-16 h-16 rounded-full bg-[var(--color-primary-dim)] flex items-center justify-center">
+              <span className="text-2xl opacity-50">⚡</span>
+            </div>
+            <p className="text-sm font-mono text-[var(--color-text-muted)]">
+              No active sessions
+            </p>
+            <p className="text-xs font-mono text-[var(--color-text-muted)] opacity-50">
+              Start a new Claude Code session to see it here
+            </p>
           </div>
         )}
       </div>
 
-      {/* 会话区域 */}
-      {enabled && daemonRunning && (
-        <>
-          {/* 统计 */}
-          <div data-testid="monitor-stats" className="flex items-center gap-4 mb-4 px-4 py-2 rounded-xl bg-white/[0.02] border border-[var(--color-border)]">
-            <span className="flex items-center gap-2 text-sm font-mono text-[var(--color-text-muted)]">
-              <Activity size={14} className="text-[var(--color-primary)]" />
-              <span className="text-[var(--color-text)]">{sessions.length}</span> active sessions
-            </span>
-            {connected && (
-              <>
-                <div className="h-3 w-px bg-[var(--color-border)]" />
-                <span className="flex items-center gap-1.5 text-xs font-mono text-[var(--color-text-muted)]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
-                  WebSocket connected
-                </span>
-              </>
-            )}
-          </div>
-
-          {/* 会话卡片网格 */}
-          {sessions.length > 0 ? (
-            <div data-testid="session-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {sessions.map((session) => (
-                <SessionCard key={session.pid} session={session} />
-              ))}
-            </div>
-          ) : (
-            <div data-testid="no-sessions" className="flex flex-col items-center justify-center py-16 gap-4">
-              <div className="w-16 h-16 rounded-full bg-[var(--color-primary-dim)] flex items-center justify-center">
-                <Activity size={24} className="text-[var(--color-primary)] opacity-50" />
-              </div>
-              <p className="text-sm font-mono text-[var(--color-text-muted)]">
-                No active sessions
-              </p>
-              <p className="text-xs font-mono text-[var(--color-text-muted)] opacity-50">
-                Start a new Claude Code session to see it here
-              </p>
-            </div>
-          )}
-
-          {/* 事件时间线 */}
-          <EventTimeline events={events} />
-        </>
-      )}
-
-      {/* 未启用状态 */}
-      {!enabled && (
-        <div data-testid="monitor-disabled" className="flex flex-col items-center justify-center py-16 gap-4">
-          <div className="w-20 h-20 rounded-full bg-[var(--color-primary-dim)] flex items-center justify-center border border-[var(--color-primary)]/20">
-            <Activity size={32} className="text-[var(--color-primary)] opacity-40" />
-          </div>
-          <p className="text-lg font-mono text-[var(--color-text-muted)]">
-            Monitor is disabled
-          </p>
-          <p className="text-sm font-mono text-[var(--color-text-muted)] opacity-60 max-w-md text-center">
-            Enable monitoring to track all your Claude Code sessions in real-time. This will inject hooks into your Claude Code settings and start the monitoring daemon.
-          </p>
-          <button
-            data-testid="enable-monitor-btn"
-            onClick={handleEnable}
-            disabled={operating}
-            className="mt-2 flex items-center gap-2 px-6 py-2.5 rounded-lg font-mono text-sm font-medium border border-[var(--color-primary)]/40 bg-[var(--color-primary-dim)] text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20 hover:border-[var(--color-primary)]/60 transition-all disabled:opacity-50"
-          >
-            {operating ? <Loader2 size={14} className="animate-spin" /> : <Power size={14} />}
-            Enable Monitor
-          </button>
-        </div>
-      )}
+      {/* 事件时间线 */}
+      <EventTimeline events={events} />
     </div>
   )
 }

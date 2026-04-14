@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import type { Session, SessionEvent } from '../api/monitor'
 
-const MONITOR_WS_URL = 'ws://localhost:17530/ws'
+const MONITOR_WS_URL = 'ws://127.0.0.1:17530/ws'
 const RECONNECT_INTERVAL = 3000
 const MAX_EVENTS = 50
 
@@ -17,6 +17,8 @@ interface UseMonitorWebSocketOptions {
   onSessionUpdate?: (session: Session) => void
   onSessionRemoved?: (pid: number) => void
   onNewEvent?: (event: SessionEvent) => void
+  onError?: (error: string) => void
+  onReconnected?: () => void
 }
 
 export function useMonitorWebSocket({
@@ -25,11 +27,15 @@ export function useMonitorWebSocket({
   onSessionUpdate,
   onSessionRemoved,
   onNewEvent,
+  onError,
+  onReconnected,
 }: UseMonitorWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [connected, setConnected] = useState(false)
   const [reconnecting, setReconnecting] = useState(false)
+  const [lastError, setLastError] = useState<string | null>(null)
+  const wasConnectedRef = useRef(false)
 
   // 用 ref 持有回调，避免频繁重连
   const callbacksRef = useRef({
@@ -37,12 +43,16 @@ export function useMonitorWebSocket({
     onSessionUpdate,
     onSessionRemoved,
     onNewEvent,
+    onError,
+    onReconnected,
   })
   callbacksRef.current = {
     onSessionsInit,
     onSessionUpdate,
     onSessionRemoved,
     onNewEvent,
+    onError,
+    onReconnected,
   }
 
   const connect = useCallback(() => {
@@ -52,8 +62,14 @@ export function useMonitorWebSocket({
       const ws = new WebSocket(MONITOR_WS_URL)
 
       ws.onopen = () => {
+        const isReconnect = wasConnectedRef.current
         setConnected(true)
         setReconnecting(false)
+        setLastError(null)
+        wasConnectedRef.current = true
+        if (isReconnect) {
+          callbacksRef.current.onReconnected?.()
+        }
       }
 
       ws.onmessage = (event) => {
@@ -81,9 +97,14 @@ export function useMonitorWebSocket({
         }
       }
 
-      ws.onclose = () => {
+      ws.onclose = (ev) => {
         setConnected(false)
         wsRef.current = null
+        if (ev.code !== 1000) {
+          const errMsg = 'WebSocket 连接异常关闭'
+          setLastError(errMsg)
+          callbacksRef.current.onError?.(errMsg)
+        }
         if (enabled) {
           setReconnecting(true)
           reconnectTimerRef.current = setTimeout(() => {
@@ -93,12 +114,18 @@ export function useMonitorWebSocket({
       }
 
       ws.onerror = () => {
+        const errMsg = 'WebSocket 连接失败'
+        setLastError(errMsg)
+        callbacksRef.current.onError?.(errMsg)
         ws.close()
       }
 
       wsRef.current = ws
     } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err)
       console.error('[monitor-ws] Connection error:', err)
+      setLastError(errMsg)
+      callbacksRef.current.onError?.(errMsg)
       if (enabled) {
         setReconnecting(true)
         reconnectTimerRef.current = setTimeout(connect, RECONNECT_INTERVAL)
@@ -117,6 +144,7 @@ export function useMonitorWebSocket({
     }
     setConnected(false)
     setReconnecting(false)
+    wasConnectedRef.current = false
   }, [])
 
   useEffect(() => {
@@ -128,5 +156,5 @@ export function useMonitorWebSocket({
     return disconnect
   }, [enabled, connect, disconnect])
 
-  return { connected, reconnecting }
+  return { connected, reconnecting, lastError }
 }

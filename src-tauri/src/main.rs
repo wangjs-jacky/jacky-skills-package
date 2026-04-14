@@ -43,6 +43,9 @@ fn main() {
             j_skills_lib::commands::monitor_check_daemon,
             j_skills_lib::commands::monitor_start_daemon,
             j_skills_lib::commands::monitor_stop_daemon,
+            j_skills_lib::commands::monitor_get_config,
+            j_skills_lib::commands::monitor_set_config,
+            j_skills_lib::commands::monitor_fetch,
             j_skills_lib::commands::list_claude_md_files,
             j_skills_lib::commands::read_claude_md,
         ])

@@ -1,4 +1,3 @@
-import ky from 'ky'
 import { invoke } from '@tauri-apps/api/core'
 
 // ========== 类型定义 ==========
@@ -55,86 +54,211 @@ export interface MonitorOperationResult {
   success: boolean
 }
 
-// ========== Daemon HTTP API ==========
+export interface MonitorConfig {
+  floatingWindow: {
+    enabled: boolean
+  }
+}
 
-const MONITOR_PORT = 17530
-const MONITOR_BASE = `http://localhost:${MONITOR_PORT}`
+// ========== Tauri fetch 代理类型 ==========
 
-const monitorHttp = ky.create({
-  prefixUrl: MONITOR_BASE,
-  timeout: 5000,
-  hooks: {
-    beforeError: [
-      (error) => {
-        console.error('[monitor-api]', error.message)
-        return error
-      },
-    ],
-  },
-})
+interface FetchResult {
+  ok: boolean
+  status: number
+  data: unknown
+}
+
+// ========== 错误类型 ==========
+
+export type MonitorErrorType = 'network' | 'timeout' | 'daemon_offline' | 'unknown'
+
+export interface MonitorApiError {
+  type: MonitorErrorType
+  message: string
+  raw?: unknown
+}
+
+export type MonitorApiResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: MonitorApiError }
+
+function classifyError(err: unknown): MonitorApiError {
+  if (err instanceof Error) {
+    const msg = err.message
+    if (msg.includes('timeout') || msg.includes('Timeout') || msg.includes('timed out')) {
+      return { type: 'timeout', message: '请求超时', raw: err }
+    }
+    if (msg.includes('Failed to fetch') || msg.includes('ECONNREFUSED') || msg.includes('fetch failed')) {
+      return { type: 'network', message: '无法连接到守护进程', raw: err }
+    }
+    return { type: 'unknown', message: msg, raw: err }
+  }
+  return { type: 'unknown', message: String(err) }
+}
+
+function okResult<T>(data: T): MonitorApiResult<T> {
+  return { ok: true, data }
+}
+
+function errResult<T>(err: unknown): MonitorApiResult<T> {
+  return { ok: false, error: classifyError(err) }
+}
+
+// ========== 通用 fetch 代理 ==========
+
+async function daemonFetch<T>(method: string, path: string): Promise<MonitorApiResult<T>> {
+  try {
+    const result = await invoke<FetchResult>('monitor_fetch', {
+      params: { method, path },
+    })
+    if (result.ok) {
+      return okResult(result.data as T)
+    }
+    return errResult<T>(new Error(`HTTP ${result.status}`))
+  } catch (err) {
+    return errResult<T>(err)
+  }
+}
+
+async function daemonFetchWithExtract<T>(
+  method: string,
+  path: string,
+  extractor: (data: unknown) => T,
+  fallback: T,
+): Promise<MonitorApiResult<T>> {
+  try {
+    const result = await invoke<FetchResult>('monitor_fetch', {
+      params: { method, path },
+    })
+    if (result.ok) {
+      return okResult(extractor(result.data) ?? fallback)
+    }
+    return errResult<T>(new Error(`HTTP ${result.status}`))
+  } catch (err) {
+    return errResult<T>(err)
+  }
+}
+
+// ========== API ==========
 
 export const monitorApi = {
-  // --- Daemon HTTP ---
+  // --- Daemon HTTP（通过 Tauri 代理） ---
 
-  async health(): Promise<boolean> {
-    try {
-      await monitorHttp.get('api/health')
-      return true
-    } catch {
-      return false
-    }
+  async health(): Promise<MonitorApiResult<boolean>> {
+    return daemonFetch('GET', '/api/health')
   },
 
-  async getSessions(): Promise<Session[]> {
-    try {
-      const resp = await monitorHttp.get('api/sessions').json<{ success: boolean; data: Session[] }>()
-      return resp.data ?? []
-    } catch {
-      return []
-    }
+  async getSessions(): Promise<MonitorApiResult<Session[]>> {
+    return daemonFetchWithExtract(
+      'GET', '/api/sessions',
+      (d) => (d as { data: Session[] })?.data ?? [],
+      [],
+    )
   },
 
-  async getSession(pid: number): Promise<Session | null> {
-    try {
-      const resp = await monitorHttp.get(`api/sessions/${pid}`).json<{ success: boolean; data: Session }>()
-      return resp.data ?? null
-    } catch {
-      return null
-    }
+  async getSession(pid: number): Promise<MonitorApiResult<Session | null>> {
+    return daemonFetchWithExtract(
+      'GET', `/api/sessions/${pid}`,
+      (d) => (d as { data: Session })?.data ?? null,
+      null,
+    )
   },
 
-  async getEvents(): Promise<SessionEvent[]> {
+  async getEvents(): Promise<MonitorApiResult<SessionEvent[]>> {
+    return daemonFetchWithExtract(
+      'GET', '/api/events',
+      (d) => (d as { data: SessionEvent[] })?.data ?? [],
+      [],
+    )
+  },
+
+  async killSession(pid: number): Promise<MonitorApiResult<null>> {
     try {
-      const resp = await monitorHttp.get('api/events').json<{ success: boolean; data: SessionEvent[] }>()
-      return resp.data ?? []
-    } catch {
-      return []
+      const result = await invoke<FetchResult>('monitor_fetch', {
+        params: { method: 'DELETE', path: `/api/sessions/${pid}` },
+      })
+      if (result.ok) {
+        return okResult(null)
+      }
+      return errResult<null>(new Error(`HTTP ${result.status}`))
+    } catch (err) {
+      return errResult<null>(err)
     }
   },
 
   // --- Tauri 命令 ---
 
-  async checkHooks(): Promise<MonitorCheckResult> {
-    return invoke<MonitorCheckResult>('monitor_check_hooks')
+  async checkHooks(): Promise<MonitorApiResult<MonitorCheckResult>> {
+    try {
+      const result = await invoke<MonitorCheckResult>('monitor_check_hooks')
+      return okResult(result)
+    } catch (err) {
+      return errResult<MonitorCheckResult>(err)
+    }
   },
 
-  async installHooks(): Promise<MonitorOperationResult> {
-    return invoke<MonitorOperationResult>('monitor_install_hooks')
+  async installHooks(): Promise<MonitorApiResult<MonitorOperationResult>> {
+    try {
+      const result = await invoke<MonitorOperationResult>('monitor_install_hooks')
+      return okResult(result)
+    } catch (err) {
+      return errResult<MonitorOperationResult>(err)
+    }
   },
 
-  async uninstallHooks(): Promise<MonitorOperationResult> {
-    return invoke<MonitorOperationResult>('monitor_uninstall_hooks')
+  async uninstallHooks(): Promise<MonitorApiResult<MonitorOperationResult>> {
+    try {
+      const result = await invoke<MonitorOperationResult>('monitor_uninstall_hooks')
+      return okResult(result)
+    } catch (err) {
+      return errResult<MonitorOperationResult>(err)
+    }
   },
 
-  async checkDaemon(): Promise<DaemonCheckResult> {
-    return invoke<DaemonCheckResult>('monitor_check_daemon')
+  async checkDaemon(): Promise<MonitorApiResult<DaemonCheckResult>> {
+    try {
+      const result = await invoke<DaemonCheckResult>('monitor_check_daemon')
+      return okResult(result)
+    } catch (err) {
+      return errResult<DaemonCheckResult>(err)
+    }
   },
 
-  async startDaemon(): Promise<DaemonCheckResult> {
-    return invoke<DaemonCheckResult>('monitor_start_daemon')
+  async startDaemon(): Promise<MonitorApiResult<DaemonCheckResult>> {
+    try {
+      const result = await invoke<DaemonCheckResult>('monitor_start_daemon')
+      return okResult(result)
+    } catch (err) {
+      return errResult<DaemonCheckResult>(err)
+    }
   },
 
-  async stopDaemon(): Promise<MonitorOperationResult> {
-    return invoke<MonitorOperationResult>('monitor_stop_daemon')
+  async stopDaemon(): Promise<MonitorApiResult<MonitorOperationResult>> {
+    try {
+      const result = await invoke<MonitorOperationResult>('monitor_stop_daemon')
+      return okResult(result)
+    } catch (err) {
+      return errResult<MonitorOperationResult>(err)
+    }
+  },
+
+  // --- 配置 ---
+
+  async getConfig(): Promise<MonitorApiResult<MonitorConfig>> {
+    try {
+      const result = await invoke<MonitorConfig>('monitor_get_config')
+      return okResult(result)
+    } catch (err) {
+      return errResult<MonitorConfig>(err)
+    }
+  },
+
+  async setConfig(config: MonitorConfig): Promise<MonitorApiResult<MonitorConfig>> {
+    try {
+      const result = await invoke<MonitorConfig>('monitor_set_config', { config })
+      return okResult(result)
+    } catch (err) {
+      return errResult<MonitorConfig>(err)
+    }
   },
 }
