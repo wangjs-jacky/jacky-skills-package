@@ -14,6 +14,13 @@ export type SessionStatus =
 
 export type TerminalType = 'vscode' | 'cursor' | 'iterm' | 'warp' | 'terminal' | 'unknown'
 
+export interface PlanStep {
+  id: string
+  title: string
+  status: 'completed' | 'in_progress' | 'pending'
+  duration?: string
+}
+
 export interface Session {
   pid: number
   ppid: number
@@ -29,6 +36,11 @@ export interface Session {
   activeTools?: string[]
   activeSubagentsCount?: number
   activeSubagents?: string[]
+  plan?: {
+    current: number
+    total: number
+    steps: PlanStep[]
+  }
 }
 
 export interface SessionEvent {
