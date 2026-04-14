@@ -12,7 +12,7 @@ export type SessionStatus =
   | 'completed'
   | 'error'
 
-export type TerminalType = 'vscode' | 'iterm' | 'warp' | 'terminal' | 'unknown'
+export type TerminalType = 'vscode' | 'cursor' | 'iterm' | 'warp' | 'terminal' | 'unknown'
 
 export interface Session {
   pid: number
@@ -168,6 +168,17 @@ export const monitorApi = {
     return daemonFetchWithExtract(
       'GET', '/api/events',
       (d) => (d as { data: SessionEvent[] })?.data ?? [],
+      [],
+    )
+  },
+
+  /**
+   * 手动触发进程发现：扫描并注册已运行但未追踪的 Claude Code 会话
+   */
+  async discoverSessions(): Promise<MonitorApiResult<Session[]>> {
+    return daemonFetchWithExtract(
+      'POST', '/api/discover',
+      (d) => (d as { data: Session[] })?.data ?? [],
       [],
     )
   },

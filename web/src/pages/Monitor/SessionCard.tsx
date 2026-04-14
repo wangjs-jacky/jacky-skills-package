@@ -22,6 +22,7 @@ function formatTime(ts: number): string {
 
 const TERMINAL_LABELS: Record<string, string> = {
   vscode: 'VSCode',
+  cursor: 'Cursor',
   iterm: 'iTerm',
   warp: 'Warp',
   terminal: 'Terminal',
