@@ -284,4 +284,17 @@ export const monitorApi = {
       return errResult<MonitorConfig>(err)
     }
   },
+
+  // --- 终端窗口激活 ---
+
+  async activateTerminal(terminal: TerminalType, project: string, pid?: number, cwd?: string): Promise<MonitorApiResult<MonitorOperationResult>> {
+    try {
+      const result = await invoke<MonitorOperationResult>('activate_terminal', {
+        params: { terminal, project, pid: pid ?? null, cwd: cwd ?? null },
+      })
+      return okResult(result)
+    } catch (err) {
+      return errResult<MonitorOperationResult>(err)
+    }
+  },
 }

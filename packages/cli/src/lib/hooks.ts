@@ -55,6 +55,24 @@ export interface SkillHooksJson {
 }
 
 /**
+ * 归一化所有 matcher：null/undefined 统一转为空字符串
+ */
+function normalizeHooksMatchers(hooks: HooksConfig): void {
+  for (const matchers of Object.values(hooks as Record<string, unknown>)) {
+    if (!Array.isArray(matchers)) {
+      continue
+    }
+    for (const matcher of matchers) {
+      if (matcher === null || matcher === undefined || typeof matcher !== 'object' || Array.isArray(matcher)) {
+        continue
+      }
+      const matcherObj = matcher as HookMatcher
+      matcherObj.matcher = normalizeMatcher(matcherObj.matcher)
+    }
+  }
+}
+
+/**
  * 获取 skill 标识符（用于 command 注释）
  */
 function getSkillMarker(skillName: string): string {
@@ -223,6 +241,7 @@ export function mergeSkillHooks(skillPath: string, skillName: string): boolean {
   }
 
   // 前置验证：检查 skill hooks.json 结构
+  normalizeHooksMatchers(skillHooks.hooks)
   const skillValidation = validateHooksConfig(skillHooks.hooks)
   if (!skillValidation.valid) {
     verbose(`skill hooks.json 结构异常，中止合并: ${skillValidation.errors.join('; ')}`)
@@ -233,6 +252,7 @@ export function mergeSkillHooks(skillPath: string, skillName: string): boolean {
 
   // 前置验证：检查 settings.json 现有 hooks 结构
   if (settings.hooks) {
+    normalizeHooksMatchers(settings.hooks)
     const validation = validateHooksConfig(settings.hooks)
     if (!validation.valid) {
       verbose(`settings.json hooks 结构异常，中止合并: ${validation.errors.join('; ')}`)
@@ -319,6 +339,7 @@ export function removeSkillHooks(skillName: string): boolean {
   }
 
   // 前置验证：检查 hooks 结构
+  normalizeHooksMatchers(settings.hooks)
   const validation = validateHooksConfig(settings.hooks)
   if (!validation.valid) {
     verbose(`settings.json hooks 结构异常，中止移除: ${validation.errors.join('; ')}`)

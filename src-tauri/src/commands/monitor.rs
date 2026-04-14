@@ -404,6 +404,263 @@ pub fn monitor_stop_daemon() -> Result<MonitorOperationResult> {
     Ok(MonitorOperationResult { success: true })
 }
 
+// ========== 终端窗口激活 ==========
+
+/// 终端类型到 macOS bundle ID 和 AppleScript 应用名的映射
+struct TerminalAppInfo {
+    /// 用于 NSWorkspace 查找进程
+    bundle_id: &'static str,
+    /// 用于 AppleScript "tell application" 和 System Events 进程名
+    app_name: &'static str,
+    /// URL scheme 前缀（用于聚焦终端面板）
+    url_scheme: &'static str,
+}
+
+fn get_terminal_info(terminal: &str) -> Option<TerminalAppInfo> {
+    match terminal {
+        "vscode" => Some(TerminalAppInfo {
+            bundle_id: "com.microsoft.VSCode",
+            app_name: "Visual Studio Code",
+            url_scheme: "vscode",
+        }),
+        "cursor" => Some(TerminalAppInfo {
+            bundle_id: "com.todesktop.230313mzl4w4u92",
+            app_name: "Cursor",
+            url_scheme: "cursor",
+        }),
+        "iterm" => Some(TerminalAppInfo {
+            bundle_id: "com.googlecode.iterm2",
+            app_name: "iTerm",
+            url_scheme: "",
+        }),
+        "warp" => Some(TerminalAppInfo {
+            bundle_id: "dev.warp.Warp-Stable",
+            app_name: "Warp",
+            url_scheme: "",
+        }),
+        "terminal" => Some(TerminalAppInfo {
+            bundle_id: "com.apple.Terminal",
+            app_name: "Terminal",
+            url_scheme: "",
+        }),
+        _ => None,
+    }
+}
+
+/// 判断是否为 IDE 类终端（需要精准窗口匹配）
+fn is_ide_terminal(terminal: &str) -> bool {
+    matches!(terminal, "vscode" | "cursor")
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivateParams {
+    pub terminal: String,
+    pub project: String,
+    pub pid: Option<u32>,
+    pub cwd: Option<String>,
+}
+
+/// 从 Claude PID 往上遍历进程树，收集所有祖先 PID 并检测真正的 IDE 类型
+///
+/// 返回 (ancestor_pids, detected_ide)
+/// - ancestor_pids: 从 Claude PID 到 IDE 进程之间的所有 PID
+/// - detected_ide: "cursor" | "vscode" | ""
+fn walk_process_tree(start_pid: u32) -> (Vec<u32>, String) {
+    let mut pids = Vec::new();
+    let mut current_pid = start_pid;
+    let mut detected_ide = String::new();
+
+    for _ in 0..10 {
+        let output = Command::new("ps")
+            .args(["-o", "ppid=,comm=", "-p", &current_pid.to_string()])
+            .output();
+
+        if let Ok(out) = output {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let line = stdout.trim();
+            if line.is_empty() {
+                eprintln!("walk_process_tree: ps returned empty for PID {}", current_pid);
+                break;
+            }
+
+            // 格式: "  1234 /bin/zsh"
+            let mut parts = line.splitn(2, char::is_whitespace);
+            let ppid_str = parts.next().unwrap_or("").trim();
+            let comm = parts.next().unwrap_or("").trim();
+
+            eprintln!("walk_process_tree: PID={} comm='{}' ppid={}", current_pid, comm, ppid_str);
+
+            let ppid: u32 = match ppid_str.parse() {
+                Ok(p) => p,
+                Err(_) => break,
+            };
+
+            // 检测 IDE 类型（进程名包含关键字）
+            if comm.contains("Cursor") {
+                detected_ide = "cursor".to_string();
+                break;
+            } else if comm.contains("Code Helper") || comm.contains("Visual Studio Code") {
+                detected_ide = "vscode".to_string();
+                break;
+            }
+
+            pids.push(current_pid);
+
+            if ppid <= 1 {
+                break;
+            }
+            current_pid = ppid;
+        } else {
+            break;
+        }
+    }
+
+    (pids, detected_ide)
+}
+
+/// 激活终端窗口
+///
+/// IDE 终端（vscode/cursor）:
+/// 1. 从 Claude PID 遍历进程树，检测真正的 IDE + 收集所有祖先 PID
+/// 2. 用 CLI（code -r / cursor -r）激活正确的工作区窗口
+/// 3. 通过 vibe-island.terminal-focus URI handler 精准跳转到对应终端 Tab
+///
+/// 普通终端（iterm/warp/terminal）：通过 AppleScript 激活应用窗口。
+#[tauri::command]
+pub fn activate_terminal(params: ActivateParams) -> Result<MonitorOperationResult> {
+    let info = match get_terminal_info(&params.terminal) {
+        Some(info) => info,
+        None => {
+            eprintln!("activate_terminal: unknown terminal type '{}'", params.terminal);
+            return Ok(MonitorOperationResult { success: false });
+        }
+    };
+
+    // ===== 非 IDE 终端：简单 AppleScript 激活 =====
+    if !is_ide_terminal(&params.terminal) {
+        let activate_script = format!(r#"tell application id "{}" to activate"#, info.bundle_id);
+        let result = Command::new("osascript").args(["-e", &activate_script]).output();
+        if let Err(e) = result {
+            eprintln!("activate_terminal: osascript failed: {}", e);
+            return Ok(MonitorOperationResult { success: false });
+        }
+        return Ok(MonitorOperationResult { success: true });
+    }
+
+    // ===== IDE 终端（vscode/cursor）=====
+
+    // 步骤 1：遍历进程树，收集祖先 PID 并检测真正的 IDE
+    let (ancestor_pids, detected_ide) = match params.pid {
+        Some(pid) => walk_process_tree(pid),
+        None => (Vec::new(), String::new()),
+    };
+
+    // 优先使用进程树检测到的 IDE，回退到前端报告的类型
+    let effective_terminal = if !detected_ide.is_empty() {
+        eprintln!(
+            "activate_terminal: detected IDE '{}' from process tree (reported: '{}')",
+            detected_ide, params.terminal
+        );
+        &detected_ide
+    } else {
+        &params.terminal
+    };
+
+    let effective_info = match get_terminal_info(effective_terminal) {
+        Some(info) => info,
+        None => info, // 回退到原始 info
+    };
+
+    eprintln!(
+        "activate_terminal: ancestor PIDs: {:?}, url_scheme: {}",
+        ancestor_pids, effective_info.url_scheme
+    );
+
+    // 步骤 2：AppleScript 激活应用 + AXRaise 匹配项目窗口（不使用 CLI 避免打开新窗口）
+    let activate_script = format!(r#"tell application id "{}" to activate"#, effective_info.bundle_id);
+    let _ = Command::new("osascript")
+        .args(["-e", &activate_script])
+        .output();
+
+    if !params.project.is_empty() {
+        std::thread::sleep(std::time::Duration::from_millis(150));
+
+        let escaped_folder = params.project.replace('\\', "\\\\").replace('"', "\\\"");
+        let escaped_process = effective_info.app_name.replace('\\', "\\\\").replace('"', "\\\"");
+
+        let raise_script = format!(
+            r#"tell application "System Events"
+    tell process "{}"
+        set frontmost to true
+        set bestWindow to missing value
+        set bestLen to 999999
+        repeat with w in windows
+            try
+                set wName to name of w as text
+                if wName contains "{}" then
+                    set wLen to count of wName
+                    if wLen < bestLen then
+                        set bestWindow to w
+                        set bestLen to wLen
+                    end if
+                end if
+            end try
+        end repeat
+        if bestWindow is not missing value then
+            perform action "AXRaise" of bestWindow
+        end if
+    end tell
+end tell"#,
+            escaped_process, escaped_folder
+        );
+
+        let _ = Command::new("osascript")
+            .args(["-e", &raise_script])
+            .output();
+    }
+
+    // 步骤 4：通过 vibe-island.terminal-focus URI handler 精准跳转终端 Tab
+    // 传递所有祖先 PID，扩展会逐一匹配 terminal.processId
+    if !ancestor_pids.is_empty() && !effective_info.url_scheme.is_empty() {
+        std::thread::sleep(std::time::Duration::from_millis(200));
+
+        let pid_params: Vec<String> = ancestor_pids.iter().map(|p| format!("pid={}", p)).collect();
+        let url = format!(
+            "{}://vibe-island.terminal-focus?{}",
+            effective_info.url_scheme,
+            pid_params.join("&")
+        );
+        eprintln!("activate_terminal: opening URI {}", url);
+
+        let result = Command::new("open").arg(&url).output();
+        match result {
+            Ok(output) => {
+                eprintln!(
+                    "activate_terminal: open result success={} stderr={}",
+                    output.status.success(),
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                if output.status.success() {
+                    return Ok(MonitorOperationResult { success: true });
+                }
+            }
+            Err(e) => {
+                eprintln!("activate_terminal: open command failed: {}", e);
+            }
+        }
+    }
+
+    // 回退：通过 URL scheme 打开终端面板（无法精准匹配 Tab）
+    if !effective_info.url_scheme.is_empty() {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let url = format!("{}://workbench.action.terminal.focus", effective_info.url_scheme);
+        let _ = Command::new("open").arg(&url).output();
+    }
+
+    Ok(MonitorOperationResult { success: true })
+}
+
 // ========== 通用 HTTP 代理（绕过 CORS） ==========
 
 #[derive(Debug, Deserialize)]

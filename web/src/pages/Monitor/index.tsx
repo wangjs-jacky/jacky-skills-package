@@ -249,6 +249,17 @@ export default function MonitorPage() {
     }
   }, [showToast])
 
+  const handleActivateSession = useCallback(async (session: Session) => {
+    const result = await monitorApi.activateTerminal(session.terminal, session.project, session.ppid, session.cwd)
+    if (result.ok && result.data.success) {
+      showToast('已跳转到终端窗口', 'success')
+    } else if (result.ok && !result.data.success) {
+      showToast('跳转失败：无法识别的终端类型', 'error')
+    } else if (!result.ok) {
+      showToast(`跳转失败: ${result.error.message}`, 'error')
+    }
+  }, [showToast])
+
   // ========== 渲染 ==========
 
   // 加载态
@@ -346,7 +357,14 @@ export default function MonitorPage() {
   const totalActiveTools = sessions.reduce((sum, s) => sum + (s.activeToolsCount ?? s.activeTools?.length ?? 0), 0)
 
   return (
-    <div data-testid="monitor-page" className="relative z-10 animate-fade-in">
+    <div
+      data-testid="monitor-page"
+      className="relative z-10 animate-fade-in"
+      style={{
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
+        backgroundSize: '48px 48px',
+      }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -360,26 +378,16 @@ export default function MonitorPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* WebSocket 状态 */}
-          {connected && (
-            <span
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono text-[var(--color-primary)]"
-              style={{ background: 'rgba(0, 255, 136, 0.12)' }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
-              WebSocket Connected
-            </span>
-          )}
-
-          {/* Daemon 状态 */}
+          {/* 连接状态 — 合并 WebSocket + Daemon */}
           <span
-            className="flex items-center px-2.5 py-1 rounded-md text-[10px] font-mono text-[var(--color-primary)]"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono text-[var(--color-primary)]"
             style={{
               background: 'rgba(0, 255, 136, 0.12)',
               border: '1px solid rgba(0, 255, 136, 0.15)',
             }}
           >
-            Daemon Running
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
+            {connected ? 'LIVE' : 'ONLINE'}
           </span>
 
           {/* 悬浮弹窗开关 */}
@@ -422,37 +430,61 @@ export default function MonitorPage() {
         </div>
       </div>
 
-      {/* Stats Bar */}
-      <div
-        data-testid="monitor-stats"
-        className="flex items-center gap-6 mb-5 px-4 py-2.5 rounded-xl"
-        style={{
-          background: 'var(--color-bg-elevated)',
-          border: '1px solid var(--color-border)',
-        }}
-      >
+      {/* Stats Bar — 独立卡片式设计 */}
+      <div data-testid="monitor-stats" className="grid grid-cols-3 gap-3 mb-5">
         {/* Sessions */}
-        <span className="flex items-center gap-2 text-sm">
-          <span>⚡</span>
-          <span className="font-mono text-base font-bold text-[var(--color-primary)]">{sessions.length}</span>
-          <span className="font-mono text-[11px] text-[var(--color-text-muted)]">active sessions</span>
-        </span>
-
-        <span className="h-5 w-px bg-[var(--color-border)]" />
+        <div
+          className="relative overflow-hidden rounded-xl px-4 py-3"
+          style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)' }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-mono text-2xl font-bold text-[var(--color-primary)]">{sessions.length}</div>
+              <div className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider mt-0.5">ACTIVE SESSIONS</div>
+            </div>
+            <span className="text-xl opacity-40">⚡</span>
+          </div>
+          <div
+            className="absolute bottom-0 left-0 right-0 h-[1px]"
+            style={{ background: 'linear-gradient(90deg, var(--color-primary), transparent)' }}
+          />
+        </div>
 
         {/* Subagents */}
-        <span className="flex items-center gap-2">
-          <span className="font-mono text-base font-bold text-[var(--color-blue)]">{totalSubagents}</span>
-          <span className="font-mono text-[11px] text-[var(--color-text-muted)]">subagents</span>
-        </span>
-
-        <span className="h-5 w-px bg-[var(--color-border)]" />
+        <div
+          className="relative overflow-hidden rounded-xl px-4 py-3"
+          style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)' }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-mono text-2xl font-bold text-[var(--color-blue)]">{totalSubagents}</div>
+              <div className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider mt-0.5">SUBAGENTS</div>
+            </div>
+            <span className="text-xl opacity-40">🤖</span>
+          </div>
+          <div
+            className="absolute bottom-0 left-0 right-0 h-[1px]"
+            style={{ background: 'linear-gradient(90deg, var(--color-blue), transparent)' }}
+          />
+        </div>
 
         {/* Active Tools */}
-        <span className="flex items-center gap-2">
-          <span className="font-mono text-base font-bold text-[var(--color-amber)]">{totalActiveTools}</span>
-          <span className="font-mono text-[11px] text-[var(--color-text-muted)]">active tools</span>
-        </span>
+        <div
+          className="relative overflow-hidden rounded-xl px-4 py-3"
+          style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)' }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-mono text-2xl font-bold text-[var(--color-amber)]">{totalActiveTools}</div>
+              <div className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider mt-0.5">ACTIVE TOOLS</div>
+            </div>
+            <span className="text-xl opacity-40">🔧</span>
+          </div>
+          <div
+            className="absolute bottom-0 left-0 right-0 h-[1px]"
+            style={{ background: 'linear-gradient(90deg, var(--color-amber), transparent)' }}
+          />
+        </div>
       </div>
 
       {/* Sessions Section */}
@@ -480,6 +512,7 @@ export default function MonitorPage() {
                 session={session}
                 onKill={handleKillSession}
                 killing={killingPid === session.pid}
+                onActivate={handleActivateSession}
               />
             ))}
           </div>

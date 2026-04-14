@@ -4,6 +4,7 @@ interface SessionCardProps {
   session: Session
   onKill?: (pid: number) => void
   killing?: boolean
+  onActivate?: (session: Session) => void
 }
 
 function formatDuration(ms: number): string {
@@ -38,11 +39,14 @@ const STATUS_STYLES: Record<string, { color: string; label: string; pulse: boole
 // 所有行内元素统一 14px 行高，保证图标+文字基线对齐
 const LH = '14px'
 
-export default function SessionCard({ session, onKill, killing }: SessionCardProps) {
+export default function SessionCard({ session, onKill, killing, onActivate }: SessionCardProps) {
   const duration = Date.now() - session.startedAt
   const style = STATUS_STYLES[session.status] ?? STATUS_STYLES.idle
   const isCompleted = session.status === 'completed'
   const hasDetails = session.cwd || session.message || (session.activeSubagents && session.activeSubagents.length > 0)
+
+  // 整个卡片可点击跳转（仅非 unknown 终端）
+  const canActivate = !!onActivate && session.terminal !== 'unknown'
 
   // 完成态文字样式
   const completedStyle: React.CSSProperties = isCompleted
@@ -52,13 +56,14 @@ export default function SessionCard({ session, onKill, killing }: SessionCardPro
   return (
     <div
       data-testid={`session-card-${session.pid}`}
-      className="rounded-[10px] overflow-hidden transition-all duration-300"
+      className={`group rounded-[10px] overflow-hidden transition-all duration-300 hover:shadow-[0_4px_24px_rgba(0,0,0,0.4)] ${canActivate ? 'cursor-pointer' : ''}`}
       style={{
         background: 'var(--color-bg-card)',
         border: `1px solid ${style.borderColor}`,
         borderLeftWidth: 2,
         borderLeftColor: style.color,
       }}
+      onClick={() => canActivate && onActivate!(session)}
     >
       {/* ========== 主行 ========== */}
       <div className="flex items-center gap-3 px-4 py-3">
@@ -185,14 +190,15 @@ export default function SessionCard({ session, onKill, killing }: SessionCardPro
           </span>
         )}
 
-        {/* 关闭按钮 */}
+        {/* 关闭按钮 — 始终可见，hover 变红 */}
         {onKill && (
           <button
             data-testid={`session-kill-${session.pid}`}
-            onClick={() => onKill(session.pid)}
+            onClick={(e) => { e.stopPropagation(); onKill(session.pid) }}
             disabled={killing}
             className="flex items-center gap-1 px-2 rounded text-[10px] font-mono text-[var(--color-text-muted)]
-              hover:text-[var(--color-red)] transition-colors duration-200 disabled:opacity-50 flex-shrink-0"
+              hover:text-[var(--color-red)] transition-all duration-200 disabled:opacity-50 flex-shrink-0
+              opacity-40 hover:opacity-100"
             style={{ lineHeight: LH, border: '1px solid var(--color-border)' }}
             title="关闭此会话进程"
           >
@@ -232,16 +238,26 @@ export default function SessionCard({ session, onKill, killing }: SessionCardPro
             />
           </div>
 
-          {/* 步骤列表 */}
-          <div className="flex flex-col gap-1.5">
-            {session.plan.steps.map((step) => {
+          {/* 步骤列表 — 带时间线连接 */}
+          <div className="relative">
+            {session.plan.steps.length > 1 && (
+              <div
+                className="absolute left-[6px] top-[10px] bottom-[10px] w-px"
+                style={{ background: 'rgba(255,255,255,0.06)' }}
+              />
+            )}
+            <div className="flex flex-col gap-1.5">
+              {session.plan.steps.map((step) => {
               const isDone = step.status === 'completed'
               const isActive = step.status === 'in_progress'
 
               return (
                 <div key={step.id} className="flex items-center gap-2">
                   {/* 步骤状态图标 — 统一 14×14 容器 */}
-                  <span className="w-[14px] h-[14px] flex items-center justify-center flex-shrink-0">
+                  <span
+                    className="w-[14px] h-[14px] flex items-center justify-center flex-shrink-0 relative z-10"
+                    style={{ background: 'var(--color-bg-card)' }}
+                  >
                     {isDone ? (
                       // 已完成：绿色勾
                       <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
@@ -288,6 +304,7 @@ export default function SessionCard({ session, onKill, killing }: SessionCardPro
                 </div>
               )
             })}
+            </div>
           </div>
         </div>
       )}

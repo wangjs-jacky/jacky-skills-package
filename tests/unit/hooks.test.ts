@@ -186,6 +186,17 @@ describe('mergeSkillHooks', () => {
             ],
           },
         ],
+        UserPromptSubmit: [
+          {
+            matcher: null,
+            hooks: [
+              {
+                type: 'command',
+                command: '/Users/jiashengwang/.superset/hooks/notify.sh',
+              },
+            ],
+          },
+        ],
       },
     }
 
@@ -239,6 +250,7 @@ describe('mergeSkillHooks', () => {
 
     expect(settings.hooks.Stop).toHaveLength(1)
     expect(settings.hooks.Stop[0].matcher).toBe('')
+    expect(settings.hooks.UserPromptSubmit[0].matcher).toBe('')
 
     const commands = settings.hooks.Stop[0].hooks.map((h: { command: string }) => h.command)
     expect(commands).toContain('/Users/jiashengwang/.superset/hooks/notify.sh')

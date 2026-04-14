@@ -3,6 +3,7 @@
 
 use crate::utils::paths::get_claude_settings_path;
 use crate::Result;
+use serde::de::Deserializer;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -20,9 +21,18 @@ pub struct HookConfig {
 /// Hook 匹配器配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HookMatcher {
-    #[serde(default)]
-    pub matcher: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_matcher")]
+    pub matcher: String,
     pub hooks: Vec<HookConfig>,
+}
+
+/// 兼容历史配置：matcher 缺失/null 时归一化为空字符串
+fn deserialize_matcher<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<Option<String>> = Option::deserialize(deserializer)?;
+    Ok(value.flatten().unwrap_or_default())
 }
 
 /// Hooks 配置结构（按 hook 类型分组）
@@ -131,7 +141,7 @@ pub fn validate_hooks_config(hooks: &serde_json::Value) -> std::result::Result<(
 
                     let m = matcher_val.as_object().unwrap();
 
-                    // 4. matcher 字段如果存在必须是 string 或 null
+                    // 4. matcher 字段如果存在必须是 string 或 null（null 在读取时会归一化为 ""）
                     if let Some(mv) = m.get("matcher") {
                         if !mv.is_string() && !mv.is_null() {
                             errors.push(format!(
@@ -265,10 +275,10 @@ pub fn merge_skill_hooks(skill_path: &Path, skill_name: &str) -> Result<bool> {
                 .collect();
 
             // 查找是否已有相同 matcher 的配置
-            let matcher_value = matcher.matcher.as_deref().unwrap_or("");
+            let matcher_value = matcher.matcher.as_str();
             let existing_matcher = entry
                 .iter_mut()
-                .find(|m| m.matcher.as_deref().unwrap_or("") == matcher_value);
+                .find(|m| m.matcher == matcher_value);
 
             if let Some(existing) = existing_matcher {
                 // 合并 hooks（避免重复）

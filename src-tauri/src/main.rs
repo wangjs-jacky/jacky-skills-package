@@ -46,6 +46,7 @@ fn main() {
             j_skills_lib::commands::monitor_get_config,
             j_skills_lib::commands::monitor_set_config,
             j_skills_lib::commands::monitor_fetch,
+            j_skills_lib::commands::activate_terminal,
             j_skills_lib::commands::list_claude_md_files,
             j_skills_lib::commands::read_claude_md,
         ])
