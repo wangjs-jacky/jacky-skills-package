@@ -27,12 +27,12 @@ jobs:
         run: npm run build
 
       - name: Publish to Visual Studio Marketplace
-        run: npm run publish:vsce
+        run: npx @vscode/vsce publish
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
       - name: Publish to Open VSX Registry
-        run: npm run publish:ovsx
+        run: npx ovsx publish --no-dependencies
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
