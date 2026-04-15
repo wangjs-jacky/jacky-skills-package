@@ -18,7 +18,7 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Terminal", "Other"],
+  "categories": ["Other"],
   "keywords": ["terminal", "focus", "j-skills", "monitor"],
   "activationEvents": ["onUri"],
   "main": "./out/extension.js",
