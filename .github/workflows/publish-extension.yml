@@ -1,0 +1,49 @@
+name: Publish Extension
+
+on:
+  push:
+    tags:
+      - 'focus-terminal-v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: packages/focus-terminal
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Publish to Visual Studio Marketplace
+        run: npm run publish:vsce
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Publish to Open VSX Registry
+        run: npm run publish:ovsx
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/focus-terminal/*.vsix
+          generate_release_notes: true
+          draft: false
+          prerelease: false

@@ -7,12 +7,16 @@ j-skills 是一个 Agent Skills 管理工具，采用 pnpm Monorepo 结构：
 ```
 jacky-skills-package/
 ├── packages/
-│   └── cli/              → @wangjs-jacky/j-skills（npm 发布）
-│       ├── src/          → CLI 源码（commands + lib）
-│       ├── bin/          → CLI 入口脚本
-│       ├── tests/        → CLI 单元测试
-│       ├── tsup.config.ts
-│       ├── vitest.config.ts
+│   ├── cli/              → @wangjs-jacky/j-skills（npm 发布）
+│   │   ├── src/          → CLI 源码（commands + lib）
+│   │   ├── bin/          → CLI 入口脚本
+│   │   ├── tests/        → CLI 单元测试
+│   │   ├── tsup.config.ts
+│   │   ├── vitest.config.ts
+│   │   └── package.json
+│   └── focus-terminal/   → jackywjs.focus-terminal（VSCode/Cursor 扩展，VSIX 发布）
+│       ├── src/          → 扩展源码（URI Handler + PID 匹配）
+│       ├── icon.png      → 扩展图标
 │       └── package.json
 ├── web/                  → Tauri 前端（React，不发布）
 │   ├── src/              → 页面、组件、API、hooks
@@ -35,6 +39,10 @@ pnpm dev:cli
 
 # CLI 构建
 pnpm build:cli
+
+# 扩展构建 & 打包
+pnpm build:extension
+pnpm package:extension
 
 # 运行 CLI 测试
 pnpm --filter @wangjs-jacky/j-skills test
@@ -62,6 +70,7 @@ pnpm typecheck
 | 前端 API | `web/src/api/` |
 | Tauri 配置 | `src-tauri/tauri.conf.json` |
 | Rust 命令 | `src-tauri/src/commands/*.rs` |
+| 终端聚焦扩展 | `packages/focus-terminal/src/extension.ts` |
 
 ## 文档导航
 
@@ -85,8 +94,17 @@ pnpm typecheck
 
 ## 发布
 
+| 包 | 标签格式 | 产物 |
+|----|----------|------|
+| CLI (npm) | `v*` | `@wangjs-jacky/j-skills` |
+| 扩展 (VSIX) | `focus-terminal-v*` | `focus-terminal-*.vsix` |
+
 ```bash
+# CLI 发布
 cd packages/cli && npm publish
+
+# 扩展发布（推 tag 触发 CI）
+git tag focus-terminal-v0.1.0 && git push origin focus-terminal-v0.1.0
 ```
 
 ## Monitor 集成架构
@@ -157,6 +175,7 @@ Tauri App
 | WebSocket hook | `web/src/hooks/useMonitorWebSocket.ts` |
 | claude-monitor 源码 | `jacky-github/jacky-claude-monitor/` |
 | monitoring skill | `jacky-github/jacky-skills/plugins/monitoring/claude-monitor/` |
+| 终端聚焦扩展 | `packages/focus-terminal/`（VSIX，配合 activate_terminal 使用） |
 
 ## Pencil 设计稿
 

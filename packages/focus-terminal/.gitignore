@@ -1,0 +1,3 @@
+focus-terminal-*.vsix
+out/
+node_modules/

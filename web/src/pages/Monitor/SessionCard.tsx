@@ -5,6 +5,7 @@ interface SessionCardProps {
   onKill?: (pid: number) => void
   killing?: boolean
   onActivate?: (session: Session) => void
+  activating?: boolean
 }
 
 function formatDuration(ms: number): string {
@@ -39,14 +40,14 @@ const STATUS_STYLES: Record<string, { color: string; label: string; pulse: boole
 // 所有行内元素统一 14px 行高，保证图标+文字基线对齐
 const LH = '14px'
 
-export default function SessionCard({ session, onKill, killing, onActivate }: SessionCardProps) {
+export default function SessionCard({ session, onKill, killing, onActivate, activating }: SessionCardProps) {
   const duration = Date.now() - session.startedAt
   const style = STATUS_STYLES[session.status] ?? STATUS_STYLES.idle
   const isCompleted = session.status === 'completed'
   const hasDetails = session.cwd || session.message || (session.activeSubagents && session.activeSubagents.length > 0)
 
-  // 整个卡片可点击跳转（仅非 unknown 终端）
-  const canActivate = !!onActivate && session.terminal !== 'unknown'
+  // 整个卡片可点击跳转（仅非 unknown 终端且未在激活中）
+  const canActivate = !!onActivate && session.terminal !== 'unknown' && !activating
 
   // 完成态文字样式
   const completedStyle: React.CSSProperties = isCompleted
@@ -56,12 +57,32 @@ export default function SessionCard({ session, onKill, killing, onActivate }: Se
   return (
     <div
       data-testid={`session-card-${session.pid}`}
-      className={`group rounded-[10px] overflow-hidden transition-all duration-300 hover:shadow-[0_4px_24px_rgba(0,0,0,0.4)] ${canActivate ? 'cursor-pointer' : ''}`}
+      className={`group rounded-[10px] overflow-hidden transition-all duration-300
+        hover:shadow-[0_4px_24px_rgba(0,0,0,0.4)]
+        hover:scale-[1.005]
+        ${canActivate ? 'cursor-pointer' : ''}
+      `}
       style={{
         background: 'var(--color-bg-card)',
-        border: `1px solid ${style.borderColor}`,
+        borderWidth: 1,
+        borderStyle: 'solid',
+        borderColor: style.borderColor,
         borderLeftWidth: 2,
         borderLeftColor: style.color,
+        // hover 时左侧边框发光
+        '--hover-glow': `0 0 12px ${style.color}`,
+      } as React.CSSProperties}
+      onMouseEnter={(e) => {
+        const el = e.currentTarget
+        el.style.borderLeftColor = style.color
+        el.style.boxShadow = `0 0 16px ${style.color}33, inset 0 0 30px ${style.color}08`
+        el.style.background = `${style.color}08`
+        el.style.borderLeftColor = style.color
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget
+        el.style.boxShadow = 'none'
+        el.style.background = 'var(--color-bg-card)'
       }}
       onClick={() => canActivate && onActivate!(session)}
     >

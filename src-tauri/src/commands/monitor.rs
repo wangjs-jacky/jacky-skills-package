@@ -577,85 +577,33 @@ pub fn activate_terminal(params: ActivateParams) -> Result<MonitorOperationResul
         ancestor_pids, effective_info.url_scheme
     );
 
-    // 步骤 2：AppleScript 激活应用 + AXRaise 匹配项目窗口（不使用 CLI 避免打开新窗口）
-    let activate_script = format!(r#"tell application id "{}" to activate"#, effective_info.bundle_id);
-    let _ = Command::new("osascript")
-        .args(["-e", &activate_script])
-        .output();
-
-    if !params.project.is_empty() {
-        std::thread::sleep(std::time::Duration::from_millis(150));
-
-        let escaped_folder = params.project.replace('\\', "\\\\").replace('"', "\\\"");
-        let escaped_process = effective_info.app_name.replace('\\', "\\\\").replace('"', "\\\"");
-
-        let raise_script = format!(
-            r#"tell application "System Events"
-    tell process "{}"
-        set frontmost to true
-        set bestWindow to missing value
-        set bestLen to 999999
-        repeat with w in windows
-            try
-                set wName to name of w as text
-                if wName contains "{}" then
-                    set wLen to count of wName
-                    if wLen < bestLen then
-                        set bestWindow to w
-                        set bestLen to wLen
-                    end if
-                end if
-            end try
-        end repeat
-        if bestWindow is not missing value then
-            perform action "AXRaise" of bestWindow
-        end if
-    end tell
-end tell"#,
-            escaped_process, escaped_folder
-        );
-
-        let _ = Command::new("osascript")
-            .args(["-e", &raise_script])
-            .output();
-    }
-
-    // 步骤 4：通过 vibe-island.terminal-focus URI handler 精准跳转终端 Tab
-    // 传递所有祖先 PID，扩展会逐一匹配 terminal.processId
-    if !ancestor_pids.is_empty() && !effective_info.url_scheme.is_empty() {
-        std::thread::sleep(std::time::Duration::from_millis(200));
-
-        let pid_params: Vec<String> = ancestor_pids.iter().map(|p| format!("pid={}", p)).collect();
-        let url = format!(
-            "{}://vibe-island.terminal-focus?{}",
-            effective_info.url_scheme,
-            pid_params.join("&")
-        );
-        eprintln!("activate_terminal: opening URI {}", url);
-
-        let result = Command::new("open").arg(&url).output();
-        match result {
-            Ok(output) => {
-                eprintln!(
-                    "activate_terminal: open result success={} stderr={}",
-                    output.status.success(),
-                    String::from_utf8_lossy(&output.stderr)
-                );
-                if output.status.success() {
-                    return Ok(MonitorOperationResult { success: true });
-                }
-            }
-            Err(e) => {
-                eprintln!("activate_terminal: open command failed: {}", e);
-            }
-        }
-    }
-
-    // 回退：通过 URL scheme 打开终端面板（无法精准匹配 Tab）
+    // 步骤 2：通过自研扩展精确聚焦终端 Tab
+    // URI 格式: {vscode|cursor}://jackywjs.focus-terminal/focus?pid=X&pid=Y
+    // 扩展使用 terminal.processId 做 PID 匹配，无需窗口标题启发式匹配
     if !effective_info.url_scheme.is_empty() {
-        std::thread::sleep(std::time::Duration::from_millis(100));
-        let url = format!("{}://workbench.action.terminal.focus", effective_info.url_scheme);
+        let mut pid_params: Vec<String> = Vec::new();
+        if !ancestor_pids.is_empty() {
+            pid_params = ancestor_pids.iter().map(|p| format!("pid={}", p)).collect();
+        }
+
+        // 构建 URI：有 PID 则精确匹配，无 PID 则回退到终端面板聚焦
+        let url = if !pid_params.is_empty() {
+            format!(
+                "{}://jackywjs.focus-terminal/focus?{}",
+                effective_info.url_scheme,
+                pid_params.join("&")
+            )
+        } else {
+            format!("{}://workbench.action.terminal.focus", effective_info.url_scheme)
+        };
+        eprintln!("activate_terminal: opening URI {}", url);
         let _ = Command::new("open").arg(&url).output();
+    } else {
+        // 非 IDE 终端（iterm/warp 等）不应走到这里，但作为安全网
+        let activate_script = format!(r#"tell application id "{}" to activate"#, effective_info.bundle_id);
+        let _ = Command::new("osascript")
+            .args(["-e", &activate_script])
+            .output();
     }
 
     Ok(MonitorOperationResult { success: true })

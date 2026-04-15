@@ -321,6 +321,38 @@ pnpm build:macos
 - Future: System tray integration
 - Future: File watcher for automatic skill syncing
 
+## Terminal Focus Extension
+
+The `focus-terminal` extension enables precise terminal tab focusing in VSCode/Cursor via PID matching, used by the Monitor panel.
+
+```bash
+# Install from VSIX
+code --install-extension packages/focus-terminal/focus-terminal-0.1.0.vsix
+cursor --install-extension packages/focus-terminal/focus-terminal-0.1.0.vsix
+```
+
+**How it works**: When you click a session in the Monitor panel, j-skills sends a URI like `cursor://jackywjs.focus-terminal/focus?pid=123` to the IDE. The extension matches the PID against `terminal.processId` and focuses the exact terminal tab.
+
+Download the latest release for your platform:
+- [macOS (Apple Silicon)](https://github.com/wangjs-jacky/jacky-skills-package/releases)
+- [macOS (Intel)](https://github.com/wangjs-jacky/jacky-skills-package/releases)
+
+### Build from Source
+
+```bash
+# Prerequisites: Rust and Xcode Command Line Tools
+pnpm install
+pnpm build:macos
+```
+
+### Features
+
+- Native desktop experience
+- Offline support
+- Better performance with Rust backend
+- Future: System tray integration
+- Future: File watcher for automatic skill syncing
+
 ## Skill Format
 
 Create a `skill.md` file in your skill directory:

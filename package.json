@@ -19,7 +19,9 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:tauri": "NO_PROXY='*' npx wdio run wdio.tauri.conf.ts",
-    "typecheck": "pnpm -r --stream typecheck"
+    "typecheck": "pnpm -r --stream typecheck",
+    "build:extension": "pnpm --filter focus-terminal build",
+    "package:extension": "pnpm --filter focus-terminal package:vsix"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

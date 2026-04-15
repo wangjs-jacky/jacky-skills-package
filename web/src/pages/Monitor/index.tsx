@@ -34,6 +34,7 @@ export default function MonitorPage() {
   const [startingDaemon, setStartingDaemon] = useState(false)
   const [installingHooks, setInstallingHooks] = useState(false)
   const [killingPid, setKillingPid] = useState<number | null>(null)
+  const [activatingPid, setActivatingPid] = useState<number | null>(null)
 
   // 初始化错误（传递给 DaemonSetupGuide）
   const [initError, setInitError] = useState<MonitorApiError | null>(null)
@@ -114,6 +115,18 @@ export default function MonitorPage() {
     }
   }, [showToast])
 
+  /**
+   * 触发 daemon 扫描已运行但未追踪的 Claude Code 会话
+   * 用于捕获 hooks 安装前已启动的历史终端
+   * 注意：仅触发 daemon 端扫描，不刷新前端数据，调用方需自行刷新
+   */
+  const discoverSessions = useCallback(async () => {
+    const result = await monitorApi.discoverSessions()
+    if (result.ok && result.data.length > 0) {
+      showToast(`发现 ${result.data.length} 个未追踪的 Claude 终端`, 'success')
+    }
+  }, [showToast])
+
   // ========== 健康检查 ==========
 
   const { consecutiveFailures, checkNow } = useDaemonHealth({
@@ -121,6 +134,7 @@ export default function MonitorPage() {
     onOnline: async () => {
       setDaemonRunning(true)
       setPhase({ type: 'ready' })
+      await discoverSessions()
       await loadDaemonData(false)
       showToast('守护进程已上线', 'success')
     },
@@ -157,11 +171,12 @@ export default function MonitorPage() {
       return
     }
 
-    // 步骤2：daemon 在线，加载数据
+    // 步骤2：daemon 在线，先扫描历史终端再加载数据
     setDaemonRunning(true)
+    await discoverSessions()
     await loadDaemonData()
     setPhase({ type: 'ready' })
-  }, [loadDaemonData])
+  }, [loadDaemonData, discoverSessions])
 
   useEffect(() => {
     init()
@@ -176,6 +191,8 @@ export default function MonitorPage() {
       if (result.ok && result.data.running) {
         setDaemonRunning(true)
         setPhase({ type: 'ready' })
+        // daemon 启动时会自动扫描，但这里再触发一次确保前端拿到最新数据
+        await discoverSessions()
         await loadDaemonData()
         showToast('守护进程已启动', 'success')
       } else if (result.ok && !result.data.running) {
@@ -188,7 +205,7 @@ export default function MonitorPage() {
     } finally {
       setStartingDaemon(false)
     }
-  }, [loadDaemonData, showToast])
+  }, [loadDaemonData, showToast, discoverSessions])
 
   const handleInstallHooks = useCallback(async () => {
     setInstallingHooks(true)
@@ -250,15 +267,22 @@ export default function MonitorPage() {
   }, [showToast])
 
   const handleActivateSession = useCallback(async (session: Session) => {
-    const result = await monitorApi.activateTerminal(session.terminal, session.project, session.ppid, session.cwd)
-    if (result.ok && result.data.success) {
-      showToast('已跳转到终端窗口', 'success')
-    } else if (result.ok && !result.data.success) {
-      showToast('跳转失败：无法识别的终端类型', 'error')
-    } else if (!result.ok) {
-      showToast(`跳转失败: ${result.error.message}`, 'error')
+    // 防止重复点击
+    if (activatingPid !== null) return
+    setActivatingPid(session.pid)
+    try {
+      const result = await monitorApi.activateTerminal(session.terminal, session.project, session.ppid, session.cwd)
+      if (result.ok && result.data.success) {
+        showToast('已跳转到终端窗口', 'success')
+      } else if (result.ok && !result.data.success) {
+        showToast('跳转失败：无法识别的终端类型', 'error')
+      } else if (!result.ok) {
+        showToast(`跳转失败: ${result.error.message}`, 'error')
+      }
+    } finally {
+      setActivatingPid(null)
     }
-  }, [showToast])
+  }, [showToast, activatingPid])
 
   // ========== 渲染 ==========
 
@@ -341,6 +365,7 @@ export default function MonitorPage() {
             if (online) {
               setDaemonRunning(true)
               setPhase({ type: 'ready' })
+              await discoverSessions()
               await loadDaemonData()
               showToast('守护进程已上线', 'success')
             }
@@ -513,6 +538,7 @@ export default function MonitorPage() {
                 onKill={handleKillSession}
                 killing={killingPid === session.pid}
                 onActivate={handleActivateSession}
+                activating={activatingPid === session.pid}
               />
             ))}
           </div>
