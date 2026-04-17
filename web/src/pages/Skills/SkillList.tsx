@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useMemo, useRef } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { Search, Package } from 'lucide-react'
 import SkillCard from './SkillCard'
 import type { SkillInfo, EnvironmentInfo } from '../../api/client'
@@ -14,10 +15,39 @@ interface SkillListProps {
 
 export default function SkillList({ skills, environments, onUnlink, onToggleEnv, onExport, onViewContent }: SkillListProps) {
   const [search, setSearch] = useState('')
+  const listRef = useRef<HTMLDivElement>(null)
 
-  const filteredSkills = skills.filter((skill) =>
-    skill.name.toLowerCase().includes(search.toLowerCase())
+  const filteredSkills = useMemo(() =>
+    skills.filter((skill) =>
+      skill.name.toLowerCase().includes(search.toLowerCase())
+    ),
+    [skills, search]
   )
+
+  // 将 skills 按 2 列分组为行
+  const rows = useMemo(() => {
+    const result: SkillInfo[][] = []
+    for (let i = 0; i < filteredSkills.length; i += 2) {
+      result.push(filteredSkills.slice(i, i + 2))
+    }
+    return result
+  }, [filteredSkills])
+
+  // 使用 useVirtualizer，找到 Layout 的 <main> 滚动容器
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => listRef.current?.closest('main') ?? null,
+    estimateSize: () => 260,
+    overscan: 5,
+  })
+
+  const virtualItems = virtualizer.getVirtualItems()
+
+  // 计算可见区域前后的空白占位高度
+  const spaceBefore = virtualItems.length > 0 ? virtualItems[0].start : 0
+  const spaceAfter = virtualItems.length > 0
+    ? virtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end
+    : 0
 
   return (
     <div data-testid="skills-list">
@@ -45,18 +75,43 @@ export default function SkillList({ skills, environments, onUnlink, onToggleEnv,
         </div>
       </div>
 
-      {/* Skills grid */}
-      <div data-testid="skills-grid" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {filteredSkills.map((skill, index) => (
-          <div
-            key={skill.name}
-            className="animate-fade-in"
-            style={{ animationDelay: `${Math.min(index * 0.05, 0.5)}s` }}
-          >
-            <SkillCard skill={skill} environments={environments} onUnlink={onUnlink} onToggleEnv={onToggleEnv} onExport={onExport} onViewContent={onViewContent} />
-          </div>
-        ))}
-      </div>
+      {/* Virtualized skills grid — 使用 spacer 占位代替 absolute 定位 */}
+      {rows.length > 0 && (
+        <div ref={listRef} data-testid="skills-grid">
+          {/* 顶部占位：撑起未渲染的上半部分 */}
+          {spaceBefore > 0 && <div style={{ height: spaceBefore }} />}
+
+          {virtualItems.map((virtualRow) => {
+            const rowSkills = rows[virtualRow.index]
+
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                className="grid grid-cols-2 gap-4 mb-4"
+              >
+                {rowSkills.map((skill) => (
+                  <SkillCard
+                    key={skill.name}
+                    skill={skill}
+                    environments={environments}
+                    onUnlink={onUnlink}
+                    onToggleEnv={onToggleEnv}
+                    onExport={onExport}
+                    onViewContent={onViewContent}
+                  />
+                ))}
+                {/* 最后一行只有 1 个 skill 时补空占位保持对齐 */}
+                {rowSkills.length === 1 && <div />}
+              </div>
+            )
+          })}
+
+          {/* 底部占位：撑起未渲染的下半部分 */}
+          {spaceAfter > 0 && <div style={{ height: spaceAfter }} />}
+        </div>
+      )}
 
       {/* Empty state */}
       {filteredSkills.length === 0 && (

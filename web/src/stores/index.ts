@@ -20,8 +20,8 @@ interface AppState {
   setIsLoading: (loading: boolean) => void
 
   // Toast
-  toast: { message: string; type: 'success' | 'error' } | null
-  showToast: (message: string, type: 'success' | 'error') => void
+  toast: { message: string; type: 'success' | 'error' | 'warning'; action?: { label: string; onClick: () => void } } | null
+  showToast: (message: string, type: 'success' | 'error' | 'warning', options?: { action?: { label: string; onClick: () => void } }) => void
   hideToast: () => void
 }
 
@@ -52,6 +52,6 @@ export const useStore = create<AppState>((set) => ({
 
   // Toast
   toast: null,
-  showToast: (message, type) => set({ toast: { message, type } }),
+  showToast: (message, type, options) => set({ toast: { message, type, action: options?.action } }),
   hideToast: () => set({ toast: null }),
 }))

@@ -7,6 +7,9 @@ pub fn get_home_dir() -> Result<PathBuf> {
 }
 
 pub fn get_j_skills_dir() -> Result<PathBuf> {
+    if let Ok(dir) = std::env::var("J_SKILLS_DIR") {
+        return Ok(PathBuf::from(dir));
+    }
     let home = get_home_dir()?;
     Ok(home.join(".j-skills"))
 }

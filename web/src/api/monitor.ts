@@ -41,6 +41,35 @@ export interface Session {
     total: number
     steps: PlanStep[]
   }
+  // 增强字段：由前端从 WebSocket tool_start/subagent_start 事件合并
+  currentToolInput?: Record<string, unknown>
+  currentSubagentDescriptions?: string[]
+}
+
+// ========== 增强功能：过程监控类型 ==========
+
+export interface ToolCall {
+  id: string
+  sessionId: number
+  tool: string
+  input: Record<string, unknown>
+  status: 'pending' | 'success' | 'error'
+  startedAt: number
+  completedAt?: number
+  duration?: number
+  error?: string
+}
+
+export interface SubagentCall {
+  id: string
+  sessionId: number
+  agentType: string
+  description: string
+  status: 'running' | 'completed' | 'error'
+  startedAt: number
+  completedAt?: number
+  duration?: number
+  error?: string
 }
 
 export interface SessionEvent {
@@ -70,6 +99,15 @@ export interface MonitorConfig {
   floatingWindow: {
     enabled: boolean
   }
+}
+
+export interface ExtensionCheckResult {
+  installed: boolean
+}
+
+export interface ExtensionInstallResult {
+  success: boolean
+  message: string
 }
 
 // ========== Tauri fetch 代理类型 ==========
@@ -295,6 +333,26 @@ export const monitorApi = {
       return okResult(result)
     } catch (err) {
       return errResult<MonitorOperationResult>(err)
+    }
+  },
+
+  // --- 扩展管理 ---
+
+  async checkTerminalExtension(terminal: string): Promise<MonitorApiResult<ExtensionCheckResult>> {
+    try {
+      const result = await invoke<ExtensionCheckResult>('check_terminal_extension', { terminal })
+      return okResult(result)
+    } catch (err) {
+      return errResult<ExtensionCheckResult>(err)
+    }
+  },
+
+  async installTerminalExtension(terminal: string): Promise<MonitorApiResult<ExtensionInstallResult>> {
+    try {
+      const result = await invoke<ExtensionInstallResult>('install_terminal_extension', { terminal })
+      return okResult(result)
+    } catch (err) {
+      return errResult<ExtensionInstallResult>(err)
     }
   },
 }

@@ -597,16 +597,103 @@ pub fn activate_terminal(params: ActivateParams) -> Result<MonitorOperationResul
             format!("{}://workbench.action.terminal.focus", effective_info.url_scheme)
         };
         eprintln!("activate_terminal: opening URI {}", url);
-        let _ = Command::new("open").arg(&url).output();
+        // 使用 spawn 避免 output() 阻塞导致前端 invoke 挂起
+        let _ = Command::new("open").arg(&url).spawn();
     } else {
         // 非 IDE 终端（iterm/warp 等）不应走到这里，但作为安全网
         let activate_script = format!(r#"tell application id "{}" to activate"#, effective_info.bundle_id);
         let _ = Command::new("osascript")
             .args(["-e", &activate_script])
-            .output();
+            .spawn();
     }
 
     Ok(MonitorOperationResult { success: true })
+}
+
+// ========== VSCode/Cursor 扩展管理 ==========
+
+const FOCUS_TERMINAL_EXTENSION: &str = "jackywjs.focus-terminal";
+
+/// 获取 IDE CLI 命令名
+fn get_ide_cli(terminal: &str) -> Option<&'static str> {
+    match terminal {
+        "vscode" => Some("code"),
+        "cursor" => Some("cursor"),
+        _ => None,
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtensionCheckResult {
+    pub installed: bool,
+}
+
+/// 检测 IDE 是否安装了 focus-terminal 扩展
+#[tauri::command]
+pub fn check_terminal_extension(terminal: String) -> Result<ExtensionCheckResult> {
+    let cli = match get_ide_cli(&terminal) {
+        Some(cli) => cli,
+        None => return Ok(ExtensionCheckResult { installed: false }),
+    };
+
+    let output = Command::new(cli)
+        .args(["--list-extensions"])
+        .output();
+
+    match output {
+        Ok(out) => {
+            let extensions = String::from_utf8_lossy(&out.stdout);
+            let installed = extensions.lines().any(|line| line.trim() == FOCUS_TERMINAL_EXTENSION);
+            Ok(ExtensionCheckResult { installed })
+        }
+        Err(_) => Ok(ExtensionCheckResult { installed: false }),
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtensionInstallResult {
+    pub success: bool,
+    pub message: String,
+}
+
+/// 安装 focus-terminal 扩展到 IDE
+#[tauri::command]
+pub fn install_terminal_extension(terminal: String) -> Result<ExtensionInstallResult> {
+    let cli = match get_ide_cli(&terminal) {
+        Some(cli) => cli,
+        None => {
+            return Ok(ExtensionInstallResult {
+                success: false,
+                message: format!("不支持的终端类型: {}", terminal),
+            });
+        }
+    };
+
+    let output = Command::new(cli)
+        .args(["--install-extension", FOCUS_TERMINAL_EXTENSION])
+        .output();
+
+    match output {
+        Ok(out) => {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let success = out.status.success();
+            // vsce 成功时输出包含 "was successfully installed"
+            let message = if success {
+                "安装成功".to_string()
+            } else {
+                format!("安装失败: {}", stderr.trim())
+            };
+            eprintln!("install_terminal_extension: stdout={}, stderr={}", stdout.trim(), stderr.trim());
+            Ok(ExtensionInstallResult { success, message })
+        }
+        Err(e) => Ok(ExtensionInstallResult {
+            success: false,
+            message: format!("执行失败: {}。请确认已安装 {}", e, cli),
+        }),
+    }
 }
 
 // ========== 通用 HTTP 代理（绕过 CORS） ==========

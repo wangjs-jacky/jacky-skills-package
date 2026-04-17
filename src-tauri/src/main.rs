@@ -1,16 +1,18 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use j_skills_lib::{AppState, Registry};
+use j_skills_lib::{AppState, Registry, start_registry_watcher};
+use std::sync::{Arc, Mutex};
 use tauri::Manager;
 
 fn main() {
     let registry = Registry::load().expect("Failed to load registry");
+    let app_state = AppState {
+        registry: Arc::new(Mutex::new(registry)),
+    };
 
     let mut builder = tauri::Builder::default()
-        .manage(AppState {
-            registry: std::sync::Mutex::new(registry),
-        })
+        .manage(app_state)
         .plugin(tauri_plugin_dialog::init());
 
     // E2E 测试 WebDriver 插件（仅 debug 构建）
@@ -47,10 +49,12 @@ fn main() {
             j_skills_lib::commands::monitor_set_config,
             j_skills_lib::commands::monitor_fetch,
             j_skills_lib::commands::activate_terminal,
+            j_skills_lib::commands::check_terminal_extension,
+            j_skills_lib::commands::install_terminal_extension,
             j_skills_lib::commands::list_claude_md_files,
             j_skills_lib::commands::read_claude_md,
         ])
-        
+
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -58,6 +62,19 @@ fn main() {
                         .level(log::LevelFilter::Info)
                         .build(),
                 )?;
+            }
+
+            // 启动 registry 文件监听器
+            let state = app.state::<AppState>();
+            let registry_arc = state.registry.clone();
+            match start_registry_watcher(registry_arc) {
+                Ok(handle) => {
+                    app.manage(handle);
+                    log::info!("Registry watcher started successfully");
+                }
+                Err(e) => {
+                    log::error!("Failed to start registry watcher: {}", e);
+                }
             }
 
             // 通过环境变量控制是否打开 DevTools（调试用）

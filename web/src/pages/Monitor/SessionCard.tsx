@@ -37,6 +37,110 @@ const STATUS_STYLES: Record<string, { color: string; label: string; pulse: boole
   error: { color: 'var(--color-red)', label: '出错', pulse: true, borderColor: 'rgba(255, 71, 87, 0.15)' },
 }
 
+// 工具类别 → MSG 颜色映射
+const TOOL_MSG_STYLES: Record<string, string> = {
+  AskUserQuestion: 'var(--color-amber)',
+  Bash: 'var(--color-blue)',
+  Edit: 'var(--color-primary)',
+  Write: 'var(--color-primary)',
+  Read: 'var(--color-blue)',
+  Grep: 'var(--color-blue)',
+  Glob: 'var(--color-blue)',
+  LSP: 'var(--color-blue)',
+  TodoWrite: 'var(--color-text-secondary)',
+  TaskCreate: 'var(--color-text-secondary)',
+  TaskUpdate: 'var(--color-text-secondary)',
+}
+
+// 缩短路径显示：替换 home 目录，只保留最后两级
+function shortenPath(path?: string): string {
+  if (!path) return ''
+  return path.replace(/^\/Users\/[^/]+/, '~').split('/').slice(-2).join('/')
+}
+
+// 从工具输入中提取可读的详情文本
+function extractToolDetail(tool: string, input?: Record<string, unknown>): string {
+  if (!input) return tool
+
+  switch (tool) {
+    case 'Bash': {
+      const cmd = (input.command as string) || ''
+      const firstLine = cmd.split('\n')[0].slice(0, 80)
+      return `$ ${firstLine}`
+    }
+    case 'Read':
+      return `→ ${shortenPath(input.file_path as string)}`
+    case 'Edit':
+    case 'Write':
+      return `✎ ${shortenPath(input.file_path as string)}`
+    case 'Grep':
+      return `⊕ ${(input.pattern as string) || ''}`
+    case 'Glob':
+      return `⊞ ${(input.pattern as string) || ''}`
+    case 'Agent':
+      return `Agent: ${(input.prompt as string || '').slice(0, 60)}`
+    default:
+      return tool
+  }
+}
+
+interface MsgStatus {
+  label: string
+  color: string
+  visible: boolean
+}
+
+function deriveMessageStatus(session: Session): MsgStatus {
+  const { status, currentTool, currentToolInput, activeSubagents, currentSubagentDescriptions, plan, message } = session
+
+  // 优先级 1: AskUserQuestion
+  if (status === 'waiting_input' || currentTool === 'AskUserQuestion') {
+    const question = currentToolInput?.question as string || message || 'AskUserQuestion'
+    return { label: question, color: 'var(--color-amber)', visible: true }
+  }
+
+  // 优先级 2: Plan 模式
+  if (plan && (status === 'thinking' || status === 'executing' || status === 'multi_executing')) {
+    return { label: `Plan ${plan.current}/${plan.total}`, color: 'var(--color-blue)', visible: true }
+  }
+
+  // 优先级 3: SubAgent 活跃（带描述）
+  if (activeSubagents && activeSubagents.length > 0) {
+    const display = activeSubagents
+      .slice(0, 2)
+      .map((agentType, i) => {
+        const desc = currentSubagentDescriptions?.[i]
+        // 如果描述和类型相同或描述就是类型名，只显示类型
+        if (!desc || desc === agentType) return agentType
+        return `${agentType}: ${desc.slice(0, 40)}`
+      })
+      .join(', ')
+    const suffix = activeSubagents.length > 2 ? ` +${activeSubagents.length - 2}` : ''
+    return { label: `SubAgent ${display}${suffix}`, color: 'var(--color-primary)', visible: true }
+  }
+
+  // 优先级 4: 当前工具（含输入详情）
+  if (currentTool) {
+    const detail = extractToolDetail(currentTool, currentToolInput)
+    return { label: detail, color: TOOL_MSG_STYLES[currentTool] ?? 'var(--color-blue)', visible: true }
+  }
+
+  // 优先级 5: 原始消息
+  if (message) {
+    return { label: message, color: 'var(--color-amber)', visible: true }
+  }
+
+  // 优先级 6: 状态推导
+  if (status === 'thinking') {
+    return { label: 'Thinking...', color: 'var(--color-amber)', visible: true }
+  }
+  if (status === 'executing' || status === 'multi_executing') {
+    return { label: 'Executing...', color: 'var(--color-blue)', visible: true }
+  }
+
+  return { label: '', color: 'var(--color-text-muted)', visible: false }
+}
+
 // 所有行内元素统一 14px 行高，保证图标+文字基线对齐
 const LH = '14px'
 
@@ -44,7 +148,8 @@ export default function SessionCard({ session, onKill, killing, onActivate, acti
   const duration = Date.now() - session.startedAt
   const style = STATUS_STYLES[session.status] ?? STATUS_STYLES.idle
   const isCompleted = session.status === 'completed'
-  const hasDetails = session.cwd || session.message || (session.activeSubagents && session.activeSubagents.length > 0)
+  const msgStatus = deriveMessageStatus(session)
+  const hasDetails = session.cwd || msgStatus.visible
 
   // 整个卡片可点击跳转（仅非 unknown 终端且未在激活中）
   const canActivate = !!onActivate && session.terminal !== 'unknown' && !activating
@@ -350,15 +455,15 @@ export default function SessionCard({ session, onKill, killing, onActivate, acti
             </div>
           )}
 
-          {/* MSG */}
-          {session.message && (
+          {/* MSG -- 实时状态 */}
+          {msgStatus.visible && (
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="font-mono text-[10px] text-[var(--color-text-muted)] flex-shrink-0" style={{ lineHeight: LH }}>MSG</span>
               <span
-                className="font-mono text-[10px] text-[var(--color-amber)] truncate"
-                style={{ lineHeight: LH, ...completedStyle }}
+                className="font-mono text-[10px] truncate"
+                style={{ lineHeight: LH, color: msgStatus.color, ...completedStyle }}
               >
-                {session.message}
+                {msgStatus.label}
               </span>
             </div>
           )}
@@ -369,10 +474,18 @@ export default function SessionCard({ session, onKill, killing, onActivate, acti
               <span className="font-mono text-[10px] text-[var(--color-text-muted)]" style={{ lineHeight: LH }}>AGENTS</span>
               <span className="w-[5px] h-[5px] rounded-full bg-[var(--color-primary)]" />
               <span
-                className="font-mono text-[10px] text-[var(--color-text)]"
+                className="font-mono text-[10px] text-[var(--color-text)] truncate max-w-[300px]"
                 style={{ lineHeight: LH, ...completedStyle }}
               >
-                {session.activeSubagents.join(', ')}
+                {(session.currentSubagentDescriptions || session.activeSubagents)
+                  .slice(0, 2)
+                  .map((desc, i) => {
+                    const agentType = session.activeSubagents![i]
+                    if (!desc || desc === agentType) return agentType
+                    return `${agentType}: ${desc.slice(0, 30)}`
+                  })
+                  .join(', ')}
+                {(session.currentSubagentDescriptions || session.activeSubagents).length > 2 && ' +'}
               </span>
             </div>
           )}

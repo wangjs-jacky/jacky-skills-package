@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
-import type { Session, SessionEvent } from '../api/monitor'
+import type { Session, SessionEvent, ToolCall, SubagentCall } from '../api/monitor'
 
 const MONITOR_WS_URL = 'ws://127.0.0.1:17530/ws'
 const RECONNECT_INTERVAL = 3000
@@ -10,6 +10,11 @@ export type ServerMessage =
   | { type: 'session_update'; session: Session }
   | { type: 'session_removed'; pid: number }
   | { type: 'new_event'; event: SessionEvent }
+  // 增强功能：实时过程监控
+  | { type: 'tool_start'; sessionId: number; toolCall: ToolCall }
+  | { type: 'tool_end'; sessionId: number; toolCallId: string; duration: number; success: boolean }
+  | { type: 'subagent_start'; sessionId: number; subagent: SubagentCall }
+  | { type: 'subagent_stop'; sessionId: number; subagentId: string; duration: number; success: boolean }
 
 interface UseMonitorWebSocketOptions {
   enabled: boolean
@@ -17,6 +22,9 @@ interface UseMonitorWebSocketOptions {
   onSessionUpdate?: (session: Session) => void
   onSessionRemoved?: (pid: number) => void
   onNewEvent?: (event: SessionEvent) => void
+  onToolStart?: (sessionId: number, toolCall: ToolCall) => void
+  onToolEnd?: (sessionId: number, toolCallId: string) => void
+  onSubagentStart?: (sessionId: number, subagent: SubagentCall) => void
   onError?: (error: string) => void
   onReconnected?: () => void
 }
@@ -27,6 +35,9 @@ export function useMonitorWebSocket({
   onSessionUpdate,
   onSessionRemoved,
   onNewEvent,
+  onToolStart,
+  onToolEnd,
+  onSubagentStart,
   onError,
   onReconnected,
 }: UseMonitorWebSocketOptions) {
@@ -43,6 +54,9 @@ export function useMonitorWebSocket({
     onSessionUpdate,
     onSessionRemoved,
     onNewEvent,
+    onToolStart,
+    onToolEnd,
+    onSubagentStart,
     onError,
     onReconnected,
   })
@@ -51,6 +65,9 @@ export function useMonitorWebSocket({
     onSessionUpdate,
     onSessionRemoved,
     onNewEvent,
+    onToolStart,
+    onToolEnd,
+    onSubagentStart,
     onError,
     onReconnected,
   }
@@ -90,6 +107,18 @@ export function useMonitorWebSocket({
               break
             case 'new_event':
               callbacksRef.current.onNewEvent?.(msg.event)
+              break
+            case 'tool_start':
+              callbacksRef.current.onToolStart?.(msg.sessionId, msg.toolCall)
+              break
+            case 'tool_end':
+              callbacksRef.current.onToolEnd?.(msg.sessionId, msg.toolCallId)
+              break
+            case 'subagent_start':
+              callbacksRef.current.onSubagentStart?.(msg.sessionId, msg.subagent)
+              break
+            case 'subagent_stop':
+              // subagent_stop 无需额外处理，session_update 会更新 activeSubagents
               break
           }
         } catch (err) {

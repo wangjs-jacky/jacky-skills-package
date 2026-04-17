@@ -182,7 +182,7 @@ export default function DevelopPage() {
                       </button>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {folder.skillNames.map((name) => (
+                      {[...new Set(folder.skillNames)].map((name) => (
                         <span
                           key={name}
                           className="px-2 py-0.5 rounded text-[10px] font-mono

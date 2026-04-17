@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Package, Trash2, Terminal, Download, Eye } from 'lucide-react'
 import type { SkillInfo, EnvironmentInfo } from '../../api/client'
 
@@ -10,18 +11,24 @@ interface SkillCardProps {
   onViewContent: (name: string) => void
 }
 
-// 根据技能名生成颜色
-function getSkillColor(name: string): { bg: string; border: string; text: string } {
-  const colors = [
-    { bg: 'var(--color-primary-dim)', border: 'var(--color-primary)/30', text: 'var(--color-primary)' },
-    { bg: 'var(--color-blue-dim)', border: 'var(--color-blue)/30', text: 'var(--color-blue)' },
-    { bg: 'var(--color-amber-dim)', border: 'var(--color-amber)/30', text: 'var(--color-amber)' },
-  ]
-  const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length
-  return colors[index]
+// 颜色方案缓存，避免每次渲染重复计算
+const colorCache = new Map<string, { bg: string; border: string; text: string }>()
+const COLOR_SCHEMES = [
+  { bg: 'var(--color-primary-dim)', border: 'var(--color-primary)/30', text: 'var(--color-primary)' },
+  { bg: 'var(--color-blue-dim)', border: 'var(--color-blue)/30', text: 'var(--color-blue)' },
+  { bg: 'var(--color-amber-dim)', border: 'var(--color-amber)/30', text: 'var(--color-amber)' },
+]
+
+function getSkillColor(name: string) {
+  const cached = colorCache.get(name)
+  if (cached) return cached
+  const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % COLOR_SCHEMES.length
+  const result = COLOR_SCHEMES[index]
+  colorCache.set(name, result)
+  return result
 }
 
-export default function SkillCard({ skill, environments, onUnlink, onToggleEnv, onExport, onViewContent }: SkillCardProps) {
+function SkillCard({ skill, environments, onUnlink, onToggleEnv, onExport, onViewContent }: SkillCardProps) {
   const installedEnvs = skill.installedEnvironments || []
   const colorScheme = getSkillColor(skill.name)
 
@@ -189,3 +196,5 @@ export default function SkillCard({ skill, environments, onUnlink, onToggleEnv, 
     </div>
   )
 }
+
+export default memo(SkillCard)

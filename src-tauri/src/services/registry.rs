@@ -24,7 +24,9 @@ impl Registry {
         ensure_j_skills_dir()?;
         let registry_path = get_registry_path()?;
         let content = serde_json::to_string_pretty(self)?;
-        std::fs::write(&registry_path, content)?;
+        let temp_path = registry_path.with_extension("tmp");
+        std::fs::write(&temp_path, content)?;
+        std::fs::rename(&temp_path, &registry_path)?;
         Ok(())
     }
 

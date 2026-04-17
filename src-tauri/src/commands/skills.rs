@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::State;
 
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
 };
 
 pub struct AppState {
-    pub registry: Mutex<Registry>,
+    pub registry: Arc<Mutex<Registry>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -108,6 +108,17 @@ fn extract_description(skill_path: &Path) -> Option<String> {
     None
 }
 
+/// 解析 skill 路径，支持 ~ 展开为家目录
+fn resolve_skill_path(path_str: &str) -> PathBuf {
+    if path_str.starts_with("~") {
+        if let Ok(home) = get_home_dir() {
+            let suffix = path_str.trim_start_matches('~').trim_start_matches('/');
+            return home.join(suffix);
+        }
+    }
+    PathBuf::from(path_str)
+}
+
 fn remove_path(path: &Path) -> std::io::Result<()> {
     if !path.exists() && !path.is_symlink() {
         return Ok(());
@@ -154,6 +165,7 @@ fn copy_dir_all(src: &Path, dst: &Path) -> Result<(), String> {
 
 fn find_skill_dirs(root: &Path) -> Result<Vec<PathBuf>, String> {
     let mut results = Vec::new();
+    let mut seen_names = std::collections::HashSet::new();
     let mut stack = vec![root.to_path_buf()];
 
     while let Some(current) = stack.pop() {
@@ -163,7 +175,11 @@ fn find_skill_dirs(root: &Path) -> Result<Vec<PathBuf>, String> {
 
         let skill_file = current.join("SKILL.md");
         if skill_file.is_file() {
-            results.push(current.clone());
+            if let Some(name) = current.file_name().and_then(|n| n.to_str()) {
+                if seen_names.insert(name.to_string()) {
+                    results.push(current.clone());
+                }
+            }
             continue;
         }
 
@@ -442,14 +458,21 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<ListSkillsResult,
     let mut registry = state.registry.lock().map_err(|e| e.to_string())?;
     let all_skills = registry.list_skills();
 
-    let mut valid_skills = Vec::new();
-    let mut cleaned_count = 0u32;
+    let mut valid_names = Vec::new();
+    let mut cleaned_names = Vec::new();
 
     for skill in all_skills {
-        let path = Path::new(&skill.path);
+        let path = resolve_skill_path(&skill.path);
         if path.is_dir() {
-            valid_skills.push(skill);
+            valid_names.push(skill.name.clone());
         } else {
+            cleaned_names.push(skill.name.clone());
+        }
+    }
+
+    // 统一清理失效的 skill，避免循环中多次 save()
+    for name in &cleaned_names {
+        if let Some(skill) = registry.get_skill(name) {
             // 清理：从环境目录删除安装文件
             if let Some(ref envs) = skill.installed_environments {
                 for env in envs {
@@ -463,21 +486,51 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<ListSkillsResult,
             if has_skill_hooks_in_settings(&skill.name) {
                 let _ = remove_skill_hooks(&skill.name);
             }
-            // 清理：从 registry 注销
-            let _ = registry.unregister(&skill.name);
-            cleaned_count += 1;
+        }
+        registry.skills.remove(name);
+    }
+
+    let mut changed = !cleaned_names.is_empty();
+
+    // 同步安装状态：扫描各环境目录，更新 installed_environments
+    let home = get_home_dir().map_err(|e| e.to_string())?;
+    let envs = env_definitions(&home);
+    for name in &valid_names {
+        let mut actual_envs = Vec::new();
+        for env in &envs {
+            if Path::new(&env.global_path).join(name).exists() {
+                actual_envs.push(env.name.clone());
+            }
+        }
+        if let Some(skill) = registry.skills.get_mut(name) {
+            let current = skill.installed_environments.clone().unwrap_or_default();
+            if current != actual_envs {
+                skill.installed_environments = if actual_envs.is_empty() { None } else { Some(actual_envs) };
+                changed = true;
+            }
         }
     }
 
+    if changed {
+        registry.save().map_err(|e| e.to_string())?;
+    }
+
+    // 从 registry 重新读取 valid skills，确保 installed_environments 已同步
+    let mut skills = registry
+        .list_skills()
+        .into_iter()
+        .filter(|s| valid_names.contains(&s.name))
+        .collect::<Vec<_>>();
+
     // 补充 description（从 SKILL.md frontmatter 解析）
-    for skill in &mut valid_skills {
-        let path = Path::new(&skill.path);
-        skill.description = extract_description(path);
+    for skill in &mut skills {
+        let path = resolve_skill_path(&skill.path);
+        skill.description = extract_description(&path);
     }
 
     Ok(ListSkillsResult {
-        skills: valid_skills,
-        cleaned_count,
+        skills,
+        cleaned_count: cleaned_names.len() as u32,
     })
 }
 

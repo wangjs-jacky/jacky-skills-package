@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Loader2, WifiOff, Bell, BellOff, AlertCircle } from 'lucide-react'
-import { monitorApi, type Session, type SessionEvent, type MonitorConfig, type MonitorCheckResult, type MonitorApiError } from '../../api/monitor'
+import { monitorApi, type Session, type SessionEvent, type MonitorConfig, type MonitorCheckResult, type MonitorApiError, type TerminalType, type ToolCall, type SubagentCall } from '../../api/monitor'
 import { useMonitorWebSocket } from '../../hooks/useMonitorWebSocket'
 import { useDaemonHealth } from '../../hooks/useDaemonHealth'
 import { useStore } from '../../stores'
@@ -48,7 +48,19 @@ export default function MonitorPage() {
         const idx = prev.findIndex((s) => s.pid === session.pid)
         if (idx >= 0) {
           const next = [...prev]
-          next[idx] = session
+          const existing = next[idx]
+          // 如果子代理数量减少，清除描述缓存避免类型与描述错位
+          const shouldClearSubagentDescs =
+            session.activeSubagents &&
+            existing.currentSubagentDescriptions &&
+            session.activeSubagents.length < existing.currentSubagentDescriptions.length
+          next[idx] = {
+            ...existing,
+            ...session,
+            currentSubagentDescriptions: shouldClearSubagentDescs
+              ? undefined
+              : existing.currentSubagentDescriptions,
+          }
           return next
         }
         return [...prev, session]
@@ -59,6 +71,40 @@ export default function MonitorPage() {
     },
     onNewEvent: (event) => {
       setEvents((prev) => [event, ...prev].slice(0, 50))
+    },
+    onToolStart: (sessionId, toolCall) => {
+      setSessions((prev) => {
+        const idx = prev.findIndex((s) => s.pid === sessionId)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = { ...next[idx], currentToolInput: toolCall.input }
+          return next
+        }
+        return prev
+      })
+    },
+    onToolEnd: (sessionId) => {
+      setSessions((prev) => {
+        const idx = prev.findIndex((s) => s.pid === sessionId)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = { ...next[idx], currentToolInput: undefined }
+          return next
+        }
+        return prev
+      })
+    },
+    onSubagentStart: (sessionId, subagent) => {
+      setSessions((prev) => {
+        const idx = prev.findIndex((s) => s.pid === sessionId)
+        if (idx >= 0) {
+          const next = [...prev]
+          const existing = next[idx].currentSubagentDescriptions ?? []
+          next[idx] = { ...next[idx], currentSubagentDescriptions: [...existing, subagent.description] }
+          return next
+        }
+        return prev
+      })
     },
     onError: (error) => {
       console.error('[monitor] WebSocket error:', error)
@@ -270,7 +316,48 @@ export default function MonitorPage() {
     // 防止重复点击
     if (activatingPid !== null) return
     setActivatingPid(session.pid)
+
+    // 安全超时：即使 Rust invoke 阻塞，也能重置状态避免 UI 卡死
+    const safetyTimeout = setTimeout(() => {
+      setActivatingPid(null)
+    }, 8000)
+
     try {
+      // IDE 终端（vscode/cursor）需要 focus-terminal 扩展
+      const isIde = session.terminal === 'vscode' || session.terminal === 'cursor'
+      if (isIde) {
+        const checkResult = await monitorApi.checkTerminalExtension(session.terminal)
+        if (checkResult.ok && !checkResult.data.installed) {
+          // 扩展未安装，提示并引导安装
+          const terminalLabel = session.terminal === 'vscode' ? 'VSCode' : 'Cursor'
+          showToast(
+            `需要安装 focus-terminal 扩展才能精准跳转 ${terminalLabel} 终端`,
+            'warning',
+            {
+              action: {
+                label: '安装',
+                onClick: async () => {
+                  const installResult = await monitorApi.installTerminalExtension(session.terminal)
+                  if (installResult.ok && installResult.data.success) {
+                    showToast(`${terminalLabel} 扩展安装成功`, 'success')
+                    // 安装成功后自动执行跳转
+                    const result = await monitorApi.activateTerminal(session.terminal, session.project, session.ppid, session.cwd)
+                    if (result.ok && result.data.success) {
+                      showToast('已跳转到终端窗口', 'success')
+                    }
+                  } else {
+                    const msg = installResult.ok ? installResult.data.message : installResult.error.message
+                    showToast(`安装失败: ${msg}`, 'error')
+                  }
+                },
+              },
+            },
+          )
+          return
+        }
+      }
+
+      // 扩展已安装或非 IDE 终端，直接跳转
       const result = await monitorApi.activateTerminal(session.terminal, session.project, session.ppid, session.cwd)
       if (result.ok && result.data.success) {
         showToast('已跳转到终端窗口', 'success')
@@ -280,6 +367,7 @@ export default function MonitorPage() {
         showToast(`跳转失败: ${result.error.message}`, 'error')
       }
     } finally {
+      clearTimeout(safetyTimeout)
       setActivatingPid(null)
     }
   }, [showToast, activatingPid])

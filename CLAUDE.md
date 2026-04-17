@@ -92,6 +92,36 @@ pnpm typecheck
 - 根级集成测试：`tests/integration/`（Rust ↔ Node.js 环境定义一致性校验）
 - BDD 用例定义：`tests/bdd/cases/`
 
+## 交付与验收规范
+
+> 每次完成功能特性开发或 BUG 修复类工作时，除代码改动外，**必须在回复末尾补充「验收方式」**，明确告知用户如何验证该工作已正确生效。
+
+### 验收方式应包含的内容
+
+1. **验证步骤**：按顺序列出操作步骤（如启动命令、点击路径、输入示例）
+2. **预期结果**：每个步骤对应的正确表现是什么
+3. **边界检查**：如有必要，说明需验证的边界场景或回归点
+4. **已知限制**：若存在暂时无法覆盖的场景，需主动说明
+
+### 示例（功能特性）
+
+```
+### 验收方式
+1. 启动 `pnpm tauri dev`
+2. 在 Monitor 页面观察 MSG 栏
+3. 在另一终端启动 `claude` 并让其执行 `Bash: ls -la`
+4. 预期：MSG 栏实时显示 `$ ls -la` 而非仅 "Bash"
+```
+
+### 示例（BUG 修复）
+
+```
+### 验收方式
+1. 复现原问题：删除 skills 目录中的某个 skill，再打开 Skills 页面
+2. 预期：页面不再报错，而是自动清理失效项并弹出 toast 提示
+3. 边界：确认正常 skill 的加载不受影响
+```
+
 ## 发布
 
 | 包 | 标签格式 | 产物 |
@@ -135,18 +165,52 @@ Tauri App
 
 ### 当前状态与迁移路径
 
-**当前**：Rust 层通过 `npx @wangjs-jacky/claude-monitor start/stop` 管理独立 Node.js 进程。
+#### 当前方案：npx 管理
 
-**迁移目标**：
+```
+Rust (monitor.rs)
+  └─ Command::new("npx").args(["@wangjs-jacky/claude-monitor", "start"])
+       └─ npx 从 npm 缓存启动 node daemon.js
+```
 
-1. 使用 Node.js SEA（Single Executable Application）将 daemon 编译为独立二进制
-2. 配置 Tauri sidecar 打包：
-   ```json
-   // src-tauri/tauri.conf.json
-   { "bundle": { "externalBin": ["binaries/claude-monitor-daemon"] } }
-   ```
-3. Rust 层改用 Tauri sidecar API 管理进程生命周期（替代 `npx` + `curl`）
+**已知问题**：
+
+| 问题 | 原因 |
+|------|------|
+| daemon 版本与源码不一致 | npx 缓存旧版本，重启后仍运行旧代码 |
+| `/api/discover` 返回 404 | 旧缓存版本缺少新端点 |
+| 首次启动慢 | 需要下载 npm 包 |
+| 依赖用户环境 | 要求 node + npm 已安装 |
+
+#### 目标方案：Node.js SEA + Tauri Sidecar
+
+```
+jacky-claude-monitor
+  └─ npm run build:sea → claude-monitor-daemon (单文件二进制，内嵌 Node.js 运行时)
+       └─ 复制到 src-tauri/binaries/claude-monitor-daemon-aarch64-apple-darwin
+            └─ Tauri 打包时自动包含在 .app 内
+
+Rust (monitor.rs)
+  └─ tauri::api::process::Command::new_sidecar("claude-monitor-daemon").spawn()
+```
+
+**迁移步骤**：
+
+1. 在 `jacky-claude-monitor` 添加 `build:sea` 脚本（Node.js SEA 编译）
+2. 配置 Tauri sidecar：`tauri.conf.json` → `"externalBin": ["binaries/claude-monitor-daemon"]`
+3. Rust 层改用 Tauri sidecar API 管理进程（替代 `npx` + `curl`）
 4. npm 包 `@wangjs-jacky/claude-monitor` 继续维护，供 CLI-only 用户使用
+
+**方案对比**：
+
+| 维度 | 当前（npx） | 目标（SEA Sidecar） |
+|------|------------|-------------------|
+| 版本管理 | npx 缓存，可能过期 | 随 App 打包，始终一致 |
+| 启动速度 | 首次需下载，~3-5s | 本地二进制，~100ms |
+| 环境依赖 | node + npm | 无（Node.js 内嵌） |
+| 分发方式 | npm registry | DMG/App 内置 |
+| 调试流程 | 修改 → build → kill → npx start | 修改 → build:sea → 复制 → 重启 App |
+| CLI 用户 | npx 直接用 | npm 包独立维护 |
 
 ### 各层职责边界
 
@@ -176,6 +240,55 @@ Tauri App
 | claude-monitor 源码 | `jacky-github/jacky-claude-monitor/` |
 | monitoring skill | `jacky-github/jacky-skills/plugins/monitoring/claude-monitor/` |
 | 终端聚焦扩展 | `packages/focus-terminal/`（VSIX，配合 activate_terminal 使用） |
+
+### 调试与开发流程
+
+Monitor 功能跨三个代码层（daemon / Rust / 前端），每层的热更新机制不同：
+
+| 修改位置 | 是否需要重新编译 | 热更新方式 |
+|----------|-----------------|-----------|
+| **前端** `web/src/` | 否（`pnpm tauri dev` 时 Vite HMR 自动生效） | 保存即生效，刷新页面或切换路由即可 |
+| **Rust** `src-tauri/src/` | **是**（Cargo 重新编译） | `pnpm tauri dev` 会自动检测 `.rs` 改动并重编译 |
+| **Daemon** `jacky-claude-monitor/` | **是**（需构建 + 重启 + npm 发布） | 见下方流程 |
+
+#### Daemon 开发流程
+
+修改 `jacky-claude-monitor` 后必须完成以下步骤才能生效：
+
+```bash
+cd ~/jacky-github/jacky-claude-monitor
+
+# 1. 构建
+npm run build
+
+# 2. 停掉旧 daemon（PID 可在 Monitor 页面查看）
+kill $(lsof -t -i :17530)
+
+# 3. 用本地构建启动（开发调试用）
+node dist/daemon.js
+
+# 4. 验证
+curl --noproxy '*' -s http://127.0.0.1:17530/api/health
+```
+
+**正式发布时**还需要 npm publish + 重启 daemon 使 npx 缓存更新：
+
+```bash
+# 升级版本号（package.json）
+# npm publish --access public
+# 重启 daemon（从 npx 拉取新版本）
+kill $(lsof -t -i :17530)
+npx @wangjs-jacky/claude-monitor start
+```
+
+#### 常见陷阱
+
+| 问题 | 原因 | 解决 |
+|------|------|------|
+| `/api/discover` 返回 404 | daemon 是从旧版 npx 缓存启动的，新端点未包含在旧版中 | 重启 daemon，确保从最新版本启动 |
+| 前端改动不生效 | 未使用 `pnpm tauri dev`，或用浏览器直接访问 localhost | 必须在 Tauri App 内测试，浏览器无 `invoke` |
+| Daemon 启动后端口仍不可达 | 旧进程未完全退出，端口被占用 | `kill $(lsof -t -i :17530)` 等待 2 秒再启动 |
+| 会话假关闭后不重新出现 | daemon 未升级到 ≥0.1.4（缺少 `ensureSessionExists` 自动注册） | 更新 daemon 到最新版 |
 
 ## Pencil 设计稿
 

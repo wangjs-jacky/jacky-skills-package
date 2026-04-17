@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../../stores'
 import { skillsApi, environmentsApi, configApi, type EnvironmentInfo } from '../../api/client'
@@ -36,9 +36,18 @@ export default function SkillsPage() {
   }
 
   // 根据 Settings 中配置的 defaultEnvironments 过滤可用环境
-  const activeEnvs = config.defaultEnvironments?.length
-    ? environments.filter((env) => config.defaultEnvironments!.includes(env.name))
-    : environments
+  const activeEnvs = useMemo(() =>
+    config.defaultEnvironments?.length
+      ? environments.filter((env) => config.defaultEnvironments!.includes(env.name))
+      : environments,
+    [config.defaultEnvironments, environments]
+  )
+
+  // Memoize 统计数据
+  const installedCount = useMemo(() =>
+    skills.filter(s => s.installedEnvironments?.length).length,
+    [skills]
+  )
 
   async function loadEnvironments() {
     try {
@@ -69,7 +78,7 @@ export default function SkillsPage() {
     }
   }
 
-  async function handleUnlink(name: string) {
+  const handleUnlink = useCallback(async (name: string) => {
     try {
       const response = await skillsApi.unlink(name)
       if (response.success) {
@@ -79,9 +88,9 @@ export default function SkillsPage() {
     } catch (err) {
       showToast('Failed to unlink skill', 'error')
     }
-  }
+  }, [showToast])
 
-  async function handleToggleEnv(name: string, env: string, enable: boolean) {
+  const handleToggleEnv = useCallback(async (name: string, env: string, enable: boolean) => {
     try {
       const skill = skills.find(s => s.name === name)
       const currentEnvs = skill?.installedEnvironments || []
@@ -105,9 +114,9 @@ export default function SkillsPage() {
       const action = enable ? 'install to' : 'remove from'
       showToast(`Failed to ${action} ${env}`, 'error')
     }
-  }
+  }, [skills, updateSkillEnvironments, showToast])
 
-  async function handleExport(name: string) {
+  const handleExport = useCallback(async (name: string) => {
     // 导出到 ~/Downloads/j-skills-export/
     // 服务端会处理路径
     const defaultPath = '~/Downloads/j-skills-export'
@@ -122,9 +131,9 @@ export default function SkillsPage() {
     } catch (err) {
       showToast('Failed to export skill', 'error')
     }
-  }
+  }, [showToast])
 
-  async function handleViewContent(name: string) {
+  const handleViewContent = useCallback(async (name: string) => {
     setViewingSkill(name)
     setContentLoading(true)
     try {
@@ -139,7 +148,7 @@ export default function SkillsPage() {
     } finally {
       setContentLoading(false)
     }
-  }
+  }, [])
 
   // 点击外部关闭 Dropdown
   useEffect(() => {
@@ -291,7 +300,7 @@ export default function SkillsPage() {
           <div className="w-2 h-2 rounded-full bg-[var(--color-primary)] animate-pulse"></div>
           <span className="text-sm font-mono text-[var(--color-text-muted)]">
             <span className="text-[var(--color-primary)]">
-              {skills.filter(s => s.installedEnvironments?.length).length}
+              {installedCount}
             </span> installed
           </span>
         </div>
