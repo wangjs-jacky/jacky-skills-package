@@ -1,18 +1,32 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../../stores'
 import { configApi, environmentsApi, type EnvironmentInfo } from '../../api/client'
-import { Settings, Check, Terminal, Cpu, Copy, Link } from 'lucide-react'
+import { checkForUpdate, getAppVersion, type UpdateInfo } from '../../api/update'
+import { Settings, Check, Terminal, Cpu, Copy, Link, RefreshCw, Download, ExternalLink, Loader2 } from 'lucide-react'
 
 export default function SettingsPage() {
   const { config, setConfig, showToast } = useStore()
   const [environments, setEnvironments] = useState<EnvironmentInfo[]>([])
   const [selectedEnvs, setSelectedEnvs] = useState<string[]>([])
   const [installMethod, setInstallMethod] = useState<'copy' | 'symlink'>('copy')
+  const [appVersion, setAppVersion] = useState('')
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+  const [checkingUpdate, setCheckingUpdate] = useState(false)
 
   useEffect(() => {
     loadConfig()
     loadEnvironments()
+    loadAppVersion()
   }, [])
+
+  async function loadAppVersion() {
+    try {
+      const version = await getAppVersion()
+      setAppVersion(version)
+    } catch {
+      // 忽略
+    }
+  }
 
   async function loadConfig() {
     try {
@@ -67,6 +81,23 @@ export default function SettingsPage() {
   function changeInstallMethod(method: 'copy' | 'symlink') {
     setInstallMethod(method)
     saveConfig(selectedEnvs, method)
+  }
+
+  async function handleCheckUpdate() {
+    setCheckingUpdate(true)
+    setUpdateInfo(null)
+    try {
+      const info = await checkForUpdate()
+      setUpdateInfo(info)
+      if (!info.has_update) {
+        showToast('Already up to date', 'success')
+      }
+    } catch (err) {
+      console.error('[Update check failed]', err)
+      showToast(`Update check failed: ${err}`, 'error')
+    } finally {
+      setCheckingUpdate(false)
+    }
   }
 
   return (
@@ -198,6 +229,74 @@ export default function SettingsPage() {
             </div>
             <span className="text-xs opacity-70">Link to original (updates reflect)</span>
           </button>
+        </div>
+      </div>
+
+      {/* About & Update Card */}
+      <div className="glass-card rounded-xl p-6 mb-6 noise-overlay">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-dim)] border border-[var(--color-primary)]/30 flex items-center justify-center">
+            <RefreshCw size={16} className="text-[var(--color-primary)]" />
+          </div>
+          <h3 className="font-mono font-semibold text-[var(--color-text)]">
+            About
+          </h3>
+        </div>
+
+        <div className="pl-11">
+          {/* 版本号 */}
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm text-[var(--color-text-muted)] font-mono">
+              Version
+            </span>
+            <span className="text-sm text-[var(--color-text)] font-mono font-semibold">
+              v{appVersion}
+            </span>
+          </div>
+
+          {/* 检查更新按钮 */}
+          <button
+            data-testid="settings-check-update"
+            onClick={handleCheckUpdate}
+            disabled={checkingUpdate}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--color-border)] bg-white/[0.02] hover:bg-white/[0.04] transition-all font-mono text-sm text-[var(--color-text)] disabled:opacity-50"
+          >
+            {checkingUpdate ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Checking...
+              </>
+            ) : (
+              <>
+                <RefreshCw size={14} />
+                Check for Updates
+              </>
+            )}
+          </button>
+
+          {/* 检查结果 */}
+          {updateInfo && updateInfo.has_update && (
+            <div className="mt-4 p-3 rounded-lg border border-[var(--color-amber)]/30 bg-[var(--color-amber)]/5">
+              <div className="flex items-center gap-2 mb-1">
+                <Download size={14} className="text-[var(--color-amber)]" />
+                <span className="font-mono text-sm text-[var(--color-amber)] font-semibold">
+                  v{updateInfo.latest_version} available
+                </span>
+              </div>
+              <p className="text-xs text-[var(--color-text-muted)] font-mono mb-2">
+                Current: v{updateInfo.current_version} → Latest: v{updateInfo.latest_version}
+              </p>
+              <a
+                href={`https://github.com/wangjs-jacky/jacky-skills-package/releases/tag/v${updateInfo.latest_version}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-mono text-[var(--color-blue)] hover:underline"
+              >
+                <ExternalLink size={12} />
+                View Release Notes
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>

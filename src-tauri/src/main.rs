@@ -53,6 +53,9 @@ fn main() {
             j_skills_lib::commands::install_terminal_extension,
             j_skills_lib::commands::list_claude_md_files,
             j_skills_lib::commands::read_claude_md,
+            j_skills_lib::commands::check_for_update,
+            j_skills_lib::commands::download_update,
+            j_skills_lib::commands::get_app_version,
         ])
 
         .setup(|app| {

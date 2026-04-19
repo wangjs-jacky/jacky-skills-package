@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 import Sidebar from '../Sidebar'
 import Toast from '../Toast'
+import UpdateBanner from '../UpdateBanner'
 
 interface LayoutProps {
   children: ReactNode
@@ -9,6 +10,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   return (
     <div className="flex h-screen overflow-hidden">
+      <UpdateBanner />
       <Sidebar />
       <main className="flex-1 overflow-auto relative">
         {/* Gradient orb decoration */}

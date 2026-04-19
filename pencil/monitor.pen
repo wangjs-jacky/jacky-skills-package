@@ -422,7 +422,7 @@
                   "bottom": 1,
                   "left": 2
                 },
-                "fill": "#ffb80026"
+                "fill": "\\$accent-amber-dim"
               },
               "layout": "vertical",
               "children": [
@@ -466,7 +466,7 @@
                       "type": "rectangle",
                       "id": "CVowa",
                       "name": "sep1",
-                      "fill": "$border",
+                      "fill": "\\$accent-amber",
                       "width": 1,
                       "height": 14
                     },
@@ -484,7 +484,7 @@
                       "type": "rectangle",
                       "id": "5YT70",
                       "name": "sep2",
-                      "fill": "$border",
+                      "fill": "\\$accent-amber",
                       "width": 1,
                       "height": 14
                     },
@@ -512,7 +512,7 @@
                       "type": "rectangle",
                       "id": "ukTzu",
                       "name": "sep3",
-                      "fill": "$border",
+                      "fill": "\\$accent-amber",
                       "width": 1,
                       "height": 14
                     },
@@ -530,7 +530,7 @@
                       "type": "rectangle",
                       "id": "kZujQ",
                       "name": "sep4",
-                      "fill": "$border",
+                      "fill": "\\$accent-amber",
                       "width": 1,
                       "height": 14
                     },
@@ -548,7 +548,7 @@
                       "type": "rectangle",
                       "id": "T3pqs",
                       "name": "sep5",
-                      "fill": "$border",
+                      "fill": "\\$accent-amber",
                       "width": 1,
                       "height": 14
                     },
@@ -566,7 +566,7 @@
                       "type": "rectangle",
                       "id": "juwHP",
                       "name": "sep6",
-                      "fill": "$border",
+                      "fill": "\\$accent-amber",
                       "width": 1,
                       "height": 14
                     },
@@ -581,7 +581,7 @@
                           "type": "frame",
                           "id": "4sz8R",
                           "name": "tool1",
-                          "fill": "$accent-blue-dim",
+                          "fill": "\\$accent-amber",
                           "cornerRadius": 4,
                           "stroke": {
                             "thickness": 1,
@@ -609,7 +609,7 @@
                           "type": "frame",
                           "id": "o8y9K",
                           "name": "tool2",
-                          "fill": "$accent-blue-dim",
+                          "fill": "\\$accent-amber",
                           "cornerRadius": 4,
                           "stroke": {
                             "thickness": 1,
@@ -637,7 +637,7 @@
                           "type": "frame",
                           "id": "OGh9x",
                           "name": "tool3",
-                          "fill": "$accent-blue-dim",
+                          "fill": "\\$accent-amber",
                           "cornerRadius": 4,
                           "stroke": {
                             "thickness": 1,
@@ -674,7 +674,7 @@
                       "type": "frame",
                       "id": "R95XE",
                       "name": "subagentBadge",
-                      "fill": "$accent-green-dim",
+                      "fill": "\\$accent-amber",
                       "cornerRadius": 4,
                       "stroke": {
                         "thickness": 1,
@@ -752,7 +752,7 @@
                   "type": "rectangle",
                   "id": "lxQSM",
                   "name": "detailSep",
-                  "fill": "$border",
+                  "fill": "\\$accent-amber",
                   "width": "fill_container",
                   "height": 1
                 },
@@ -880,7 +880,7 @@
                   "bottom": 1,
                   "left": 2
                 },
-                "fill": "#00d4ff26"
+                "fill": "\\$accent-blue-dim"
               },
               "layout": "vertical",
               "children": [
@@ -918,7 +918,7 @@
                       "type": "rectangle",
                       "id": "6JTM7",
                       "name": "s2sep1",
-                      "fill": "$border",
+                      "fill": "\\$accent-green",
                       "width": 1,
                       "height": 14
                     },
@@ -936,7 +936,7 @@
                       "type": "rectangle",
                       "id": "HffAa",
                       "name": "s2sep2",
-                      "fill": "$border",
+                      "fill": "\\$accent-green",
                       "width": 1,
                       "height": 14
                     },
@@ -964,7 +964,7 @@
                       "type": "rectangle",
                       "id": "wHd14",
                       "name": "s2sep3",
-                      "fill": "$border",
+                      "fill": "\\$accent-green",
                       "width": 1,
                       "height": 14
                     },
@@ -982,7 +982,7 @@
                       "type": "rectangle",
                       "id": "A4nMz",
                       "name": "s2sep4",
-                      "fill": "$border",
+                      "fill": "\\$accent-green",
                       "width": 1,
                       "height": 14
                     },
@@ -1000,7 +1000,7 @@
                       "type": "rectangle",
                       "id": "oo5Eu",
                       "name": "s2sep5",
-                      "fill": "$border",
+                      "fill": "\\$accent-green",
                       "width": 1,
                       "height": 14
                     },
@@ -1018,7 +1018,7 @@
                       "type": "rectangle",
                       "id": "8UaL2",
                       "name": "s2sep6",
-                      "fill": "$border",
+                      "fill": "\\$accent-green",
                       "width": 1,
                       "height": 14
                     },
@@ -1033,11 +1033,11 @@
                           "type": "frame",
                           "id": "Qiaf4",
                           "name": "s2t1",
-                          "fill": "$accent-blue-dim",
+                          "fill": "\\$accent-green",
                           "cornerRadius": 4,
                           "stroke": {
                             "thickness": 1,
-                            "fill": "#00d4ff26"
+                            "fill": "\\$accent-blue-dim"
                           },
                           "padding": [
                             3,
@@ -1061,11 +1061,11 @@
                           "type": "frame",
                           "id": "DDsUo",
                           "name": "s2t2",
-                          "fill": "$accent-blue-dim",
+                          "fill": "\\$accent-green",
                           "cornerRadius": 4,
                           "stroke": {
                             "thickness": 1,
-                            "fill": "#00d4ff26"
+                            "fill": "\\$accent-blue-dim"
                           },
                           "padding": [
                             3,
@@ -1138,7 +1138,7 @@
                   "type": "rectangle",
                   "id": "cI6VC",
                   "name": "s2detailSep",
-                  "fill": "$border",
+                  "fill": "\\$accent-green",
                   "width": "fill_container",
                   "height": 1
                 },
@@ -2042,6 +2042,11 @@
       "name": "Session Card - Plan & SubAgent",
       "width": 1200,
       "fill": "$bg",
+      "cornerRadius": 10,
+      "stroke": {
+        "thickness": 1,
+        "fill": "$border"
+      },
       "layout": "vertical",
       "padding": [
         32,
@@ -2055,6 +2060,10 @@
           "id": "Xtcdn",
           "name": "Section Label",
           "width": "fill_container",
+          "padding": [
+            0,
+            16
+          ],
           "justifyContent": "space_between",
           "alignItems": "center",
           "children": [
@@ -2071,7 +2080,7 @@
                   "name": "hIcon",
                   "fill": "$accent-green",
                   "content": "◈",
-                  "fontFamily": "Inter",
+                  "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "normal"
                 },
@@ -2081,7 +2090,7 @@
                   "name": "hTitle",
                   "fill": "$text-secondary",
                   "content": "SESSION DETAIL",
-                  "fontFamily": "JetBrains Mono",
+                  "fontFamily": "$font-mono",
                   "fontSize": 12,
                   "fontWeight": "600",
                   "letterSpacing": 2
@@ -2094,7 +2103,7 @@
               "name": "hDesc",
               "fill": "$text-muted",
               "content": "Plan & SubAgent 展示方案",
-              "fontFamily": "JetBrains Mono",
+              "fontFamily": "$font-mono",
               "fontSize": 11,
               "fontWeight": "normal"
             }
@@ -2105,7 +2114,7 @@
           "id": "JMpK6",
           "name": "spacer0",
           "width": "fill_container",
-          "height": 20
+          "height": 16
         },
         {
           "type": "frame",
@@ -2113,15 +2122,10 @@
           "name": "Session Card",
           "width": "fill_container",
           "fill": "$bg-card",
-          "cornerRadius": 10,
+          "cornerRadius": 12,
           "stroke": {
-            "thickness": {
-              "top": 1,
-              "right": 1,
-              "bottom": 1,
-              "left": 2
-            },
-            "fill": "#ffb80026"
+            "thickness": 1,
+            "fill": "$border-light"
           },
           "layout": "vertical",
           "children": [
@@ -2130,6 +2134,13 @@
               "id": "BJLuf",
               "name": "mainRow",
               "width": "fill_container",
+              "fill": "$bg-elevated",
+              "cornerRadius": [
+                8,
+                8,
+                0,
+                0
+              ],
               "gap": 12,
               "padding": [
                 12,
@@ -2147,8 +2158,8 @@
                   "effect": {
                     "type": "shadow",
                     "shadowType": "outer",
-                    "color": "#ffb80080",
-                    "blur": 6
+                    "color": "$accent-amber",
+                    "blur": 8
                   }
                 },
                 {
@@ -2165,7 +2176,7 @@
                   "type": "rectangle",
                   "id": "SxwH3",
                   "name": "sep1",
-                  "fill": "$border",
+                  "fill": "$border-light",
                   "width": 1,
                   "height": 14
                 },
@@ -2183,7 +2194,7 @@
                   "type": "rectangle",
                   "id": "1kTZX",
                   "name": "sep2",
-                  "fill": "$border",
+                  "fill": "$border-light",
                   "width": 1,
                   "height": 14
                 },
@@ -2193,7 +2204,7 @@
                   "name": "termIco",
                   "fill": "$text-muted",
                   "content": "⌘",
-                  "fontFamily": "Inter",
+                  "fontFamily": "JetBrains Mono",
                   "fontSize": 10,
                   "fontWeight": "normal"
                 },
@@ -2211,7 +2222,7 @@
                   "type": "rectangle",
                   "id": "ajvCJ",
                   "name": "sep3",
-                  "fill": "$border",
+                  "fill": "$border-light",
                   "width": 1,
                   "height": 14
                 },
@@ -2229,7 +2240,7 @@
                   "type": "rectangle",
                   "id": "OmoKk",
                   "name": "sep4",
-                  "fill": "$border",
+                  "fill": "$border-light",
                   "width": 1,
                   "height": 14
                 },
@@ -2254,7 +2265,8 @@
                   "type": "frame",
                   "id": "s57eI",
                   "name": "killBtn",
-                  "cornerRadius": 4,
+                  "fill": "#ffffff05",
+                  "cornerRadius": 6,
                   "stroke": {
                     "thickness": 1,
                     "fill": "$border"
@@ -2294,7 +2306,7 @@
               "type": "rectangle",
               "id": "pTbQ1",
               "name": "dSep1",
-              "fill": "$border",
+              "fill": "$border-light",
               "width": "fill_container",
               "height": 1
             },
@@ -2411,7 +2423,7 @@
               "type": "rectangle",
               "id": "p1BKA",
               "name": "pSep",
-              "fill": "$border",
+              "fill": "$border-light",
               "width": "fill_container",
               "height": 1
             },
@@ -2420,12 +2432,18 @@
               "id": "hGW0A",
               "name": "Plan Section",
               "width": "fill_container",
+              "fill": "$bg-elevated",
+              "cornerRadius": [
+                0,
+                0,
+                8,
+                8
+              ],
               "layout": "vertical",
+              "gap": 12,
               "padding": [
-                10,
                 16,
-                12,
-                16
+                20
               ],
               "children": [
                 {
@@ -2433,6 +2451,7 @@
                   "id": "5jHJA",
                   "name": "planHeader",
                   "width": "fill_container",
+                  "gap": 12,
                   "justifyContent": "space_between",
                   "alignItems": "center",
                   "children": [
@@ -2440,7 +2459,7 @@
                       "type": "frame",
                       "id": "NdIq0",
                       "name": "phLeft",
-                      "gap": 8,
+                      "gap": 10,
                       "alignItems": "center",
                       "children": [
                         {
@@ -2467,11 +2486,22 @@
                           "type": "frame",
                           "id": "LpHOh",
                           "name": "phCountBg",
-                          "fill": "$accent-green-dim",
-                          "cornerRadius": 4,
+                          "fill": {
+                            "colors": [
+                              {
+                                "color": "$accent-green",
+                                "position": 0
+                              },
+                              {
+                                "color": "$accent-blue",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "cornerRadius": 6,
                           "padding": [
-                            2,
-                            8
+                            4,
+                            12
                           ],
                           "alignItems": "center",
                           "children": [
@@ -2482,7 +2512,7 @@
                               "fill": "$accent-green",
                               "content": "3/6",
                               "fontFamily": "JetBrains Mono",
-                              "fontSize": 10,
+                              "fontSize": 12,
                               "fontWeight": "600"
                             }
                           ]
@@ -2496,7 +2526,7 @@
                       "fill": "$accent-blue",
                       "content": "3/6 已完成 · 步骤 4 执行中",
                       "fontFamily": "JetBrains Mono",
-                      "fontSize": 10,
+                      "fontSize": 11,
                       "fontWeight": "normal"
                     }
                   ]
@@ -2507,35 +2537,36 @@
                   "name": "completedSteps",
                   "width": "fill_container",
                   "layout": "vertical",
+                  "gap": 8,
                   "children": [
                     {
                       "type": "frame",
                       "id": "wMbpf",
                       "name": "s1row",
                       "width": "fill_container",
-                      "gap": 10,
+                      "gap": 12,
                       "padding": [
-                        4,
+                        6,
                         0
                       ],
-                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
                           "id": "vKEkw",
                           "name": "s1left",
-                          "width": 24,
+                          "width": 20,
                           "layout": "vertical",
+                          "gap": 6,
                           "alignItems": "center",
                           "children": [
                             {
                               "type": "frame",
                               "id": "rL9Y3",
                               "name": "s1circle",
-                              "width": 16,
-                              "height": 16,
-                              "fill": "$accent-green-dim",
-                              "cornerRadius": 8,
+                              "width": 20,
+                              "height": 20,
+                              "fill": "$accent-green",
+                              "cornerRadius": 10,
                               "justifyContent": "center",
                               "alignItems": "center",
                               "children": [
@@ -2555,8 +2586,8 @@
                               "id": "eQj1V",
                               "name": "s1line",
                               "width": 2,
-                              "height": 20,
-                              "fill": "#00ff8840",
+                              "height": 16,
+                              "fill": "$accent-green-dim",
                               "cornerRadius": 1
                             }
                           ]
@@ -2566,8 +2597,7 @@
                           "id": "jaZlq",
                           "name": "s1body",
                           "width": "fill_container",
-                          "gap": 6,
-                          "alignItems": "center",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
@@ -2578,8 +2608,8 @@
                               "width": "fill_container",
                               "content": "读取并分析现有代码结构",
                               "fontFamily": "JetBrains Mono",
-                              "fontSize": 10,
-                              "fontWeight": "normal"
+                              "fontSize": 11,
+                              "fontWeight": "500"
                             },
                             {
                               "type": "text",
@@ -2588,7 +2618,7 @@
                               "fill": "$text-muted",
                               "content": "2m 15s",
                               "fontFamily": "JetBrains Mono",
-                              "fontSize": 9,
+                              "fontSize": 10,
                               "fontWeight": "normal"
                             }
                           ]
@@ -2600,29 +2630,29 @@
                       "id": "Gr59B",
                       "name": "s2row",
                       "width": "fill_container",
-                      "gap": 10,
+                      "gap": 12,
                       "padding": [
-                        4,
+                        6,
                         0
                       ],
-                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
                           "id": "EG0Y7",
                           "name": "s2left",
-                          "width": 24,
+                          "width": 20,
                           "layout": "vertical",
+                          "gap": 6,
                           "alignItems": "center",
                           "children": [
                             {
                               "type": "frame",
                               "id": "5s7A5",
                               "name": "s2circle",
-                              "width": 16,
-                              "height": 16,
-                              "fill": "$accent-green-dim",
-                              "cornerRadius": 8,
+                              "width": 20,
+                              "height": 20,
+                              "fill": "$accent-green",
+                              "cornerRadius": 10,
                               "justifyContent": "center",
                               "alignItems": "center",
                               "children": [
@@ -2642,8 +2672,8 @@
                               "id": "2jKgb",
                               "name": "s2line",
                               "width": 2,
-                              "height": 20,
-                              "fill": "#00ff8840",
+                              "height": 16,
+                              "fill": "$accent-green-dim",
                               "cornerRadius": 1
                             }
                           ]
@@ -2653,8 +2683,7 @@
                           "id": "WPhH6",
                           "name": "s2body",
                           "width": "fill_container",
-                          "gap": 6,
-                          "alignItems": "center",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
@@ -2665,8 +2694,8 @@
                               "width": "fill_container",
                               "content": "创建 Plan 和 SubAgent 数据模型",
                               "fontFamily": "JetBrains Mono",
-                              "fontSize": 10,
-                              "fontWeight": "normal"
+                              "fontSize": 11,
+                              "fontWeight": "500"
                             },
                             {
                               "type": "text",
@@ -2675,7 +2704,7 @@
                               "fill": "$text-muted",
                               "content": "1m 42s",
                               "fontFamily": "JetBrains Mono",
-                              "fontSize": 9,
+                              "fontSize": 10,
                               "fontWeight": "normal"
                             }
                           ]
@@ -2687,29 +2716,29 @@
                       "id": "XfMya",
                       "name": "s3row",
                       "width": "fill_container",
-                      "gap": 10,
+                      "gap": 12,
                       "padding": [
-                        4,
+                        6,
                         0
                       ],
-                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
                           "id": "hvZuK",
                           "name": "s3left",
-                          "width": 24,
+                          "width": 20,
                           "layout": "vertical",
+                          "gap": 6,
                           "alignItems": "center",
                           "children": [
                             {
                               "type": "frame",
                               "id": "q8vW9",
                               "name": "s3circle",
-                              "width": 16,
-                              "height": 16,
-                              "fill": "$accent-green-dim",
-                              "cornerRadius": 8,
+                              "width": 20,
+                              "height": 20,
+                              "fill": "$accent-green",
+                              "cornerRadius": 10,
                               "justifyContent": "center",
                               "alignItems": "center",
                               "children": [
@@ -2729,8 +2758,8 @@
                               "id": "HQyF0",
                               "name": "s3line",
                               "width": 2,
-                              "height": 24,
-                              "fill": "#00ff8826",
+                              "height": 16,
+                              "fill": "$accent-green-dim",
                               "cornerRadius": 1
                             }
                           ]
@@ -2740,8 +2769,7 @@
                           "id": "UX9Qu",
                           "name": "s3body",
                           "width": "fill_container",
-                          "gap": 6,
-                          "alignItems": "center",
+                          "gap": 8,
                           "children": [
                             {
                               "type": "text",
@@ -2752,8 +2780,8 @@
                               "width": "fill_container",
                               "content": "设计 Pencil 稿 Plan 区域布局",
                               "fontFamily": "JetBrains Mono",
-                              "fontSize": 10,
-                              "fontWeight": "normal"
+                              "fontSize": 11,
+                              "fontWeight": "500"
                             },
                             {
                               "type": "text",
@@ -2762,7 +2790,7 @@
                               "fill": "$text-muted",
                               "content": "3m 08s",
                               "fontFamily": "JetBrains Mono",
-                              "fontSize": 9,
+                              "fontSize": 10,
                               "fontWeight": "normal"
                             }
                           ]
@@ -2776,8 +2804,8 @@
                   "id": "RO3LS",
                   "name": "progressBar",
                   "width": "fill_container",
-                  "height": 2,
-                  "fill": "#ffffff0d",
+                  "height": 3,
+                  "fill": "$accent-amber-dim",
                   "cornerRadius": 1,
                   "children": [
                     {
@@ -2795,17 +2823,17 @@
                         },
                         "colors": [
                           {
-                            "color": "#00ff88",
+                            "color": "$accent-green",
                             "position": 0
                           },
                           {
-                            "color": "#00d4ff",
+                            "color": "$accent-blue",
                             "position": 1
                           }
                         ]
                       },
-                      "width": 520,
-                      "height": 2
+                      "width": "fill_container",
+                      "height": 3
                     }
                   ]
                 },
@@ -2814,15 +2842,15 @@
                   "id": "zU5td",
                   "name": "activeStep",
                   "width": "fill_container",
-                  "gap": 10,
-                  "alignItems": "center",
+                  "gap": 12,
                   "children": [
                     {
                       "type": "frame",
                       "id": "Z0X9d",
                       "name": "activeLeft",
-                      "width": 24,
+                      "width": 20,
                       "layout": "vertical",
+                      "gap": 8,
                       "alignItems": "center",
                       "children": [
                         {
@@ -2830,12 +2858,12 @@
                           "id": "W6fvB",
                           "name": "activeGlow",
                           "fill": "$accent-blue",
-                          "width": 10,
-                          "height": 10,
+                          "width": 12,
+                          "height": 12,
                           "effect": {
                             "type": "shadow",
                             "shadowType": "outer",
-                            "color": "#00d4ff80",
+                            "color": "$shadow-color",
                             "blur": 6
                           }
                         },
@@ -2843,9 +2871,9 @@
                           "type": "frame",
                           "id": "19KL2",
                           "name": "activeLine",
-                          "width": 2,
-                          "height": 24,
-                          "fill": "#00d4ff33",
+                          "width": 3,
+                          "height": 28,
+                          "fill": "$accent-blue-dim",
                           "cornerRadius": 1
                         }
                       ]
@@ -2855,25 +2883,26 @@
                       "id": "Q0mIO",
                       "name": "activeCard",
                       "width": "fill_container",
-                      "fill": "$accent-blue-dim",
-                      "cornerRadius": 6,
+                      "fill": "$bg-elevated",
+                      "cornerRadius": 8,
                       "stroke": {
                         "thickness": 1,
-                        "fill": "#00d4ff26"
+                        "fill": "$border-active"
                       },
                       "layout": "vertical",
-                      "gap": 6,
+                      "gap": 8,
                       "padding": [
-                        8,
-                        12
+                        12,
+                        16
                       ],
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
                           "id": "eK2Ri",
                           "name": "activeTop",
                           "width": "fill_container",
-                          "gap": 8,
+                          "gap": 10,
                           "alignItems": "center",
                           "children": [
                             {
@@ -2885,7 +2914,7 @@
                               "width": "fill_container",
                               "content": "实现 Plan 组件 UI 和数据绑定",
                               "fontFamily": "JetBrains Mono",
-                              "fontSize": 11,
+                              "fontSize": 12,
                               "fontWeight": "600"
                             },
                             {
@@ -2895,7 +2924,7 @@
                               "fill": "$accent-blue",
                               "content": "⟳",
                               "fontFamily": "Inter",
-                              "fontSize": 11,
+                              "fontSize": 12,
                               "fontWeight": "normal"
                             }
                           ]
@@ -2905,7 +2934,7 @@
                           "id": "zOn9E",
                           "name": "activeMeta",
                           "width": "fill_container",
-                          "gap": 12,
+                          "gap": 16,
                           "alignItems": "center",
                           "children": [
                             {
@@ -2915,7 +2944,7 @@
                               "fill": "$text-muted",
                               "content": "正在读取 src/components/Plan.tsx ...",
                               "fontFamily": "JetBrains Mono",
-                              "fontSize": 9,
+                              "fontSize": 10,
                               "fontWeight": "normal"
                             },
                             {
@@ -2925,7 +2954,7 @@
                               "fill": "$text-muted",
                               "content": "已耗时 4m 32s",
                               "fontFamily": "JetBrains Mono",
-                              "fontSize": 9,
+                              "fontSize": 10,
                               "fontWeight": "normal"
                             }
                           ]
@@ -2940,38 +2969,39 @@
                   "name": "pendingSteps",
                   "width": "fill_container",
                   "layout": "vertical",
+                  "gap": 8,
                   "children": [
                     {
                       "type": "frame",
                       "id": "qSxkJ",
                       "name": "s5row",
                       "width": "fill_container",
-                      "gap": 10,
+                      "gap": 12,
                       "padding": [
-                        4,
+                        6,
                         0
                       ],
-                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
                           "id": "zuDzy",
                           "name": "s5left",
-                          "width": 24,
+                          "width": 20,
                           "height": 26,
                           "layout": "vertical",
+                          "gap": 6,
                           "alignItems": "center",
                           "children": [
                             {
                               "type": "ellipse",
                               "id": "Q6QCJ",
                               "name": "s5dot",
-                              "fill": "#ffffff14",
-                              "width": 6,
-                              "height": 6,
+                              "fill": "$bg-elevated",
+                              "width": 12,
+                              "height": 12,
                               "stroke": {
                                 "thickness": 1,
-                                "fill": "#ffffff26"
+                                "fill": "$border"
                               }
                             },
                             {
@@ -2979,8 +3009,8 @@
                               "id": "tMXvv",
                               "name": "s5line",
                               "width": 2,
-                              "height": 20,
-                              "fill": "#ffffff0a",
+                              "height": 16,
+                              "fill": "$border",
                               "cornerRadius": 1
                             }
                           ]
@@ -2994,7 +3024,7 @@
                           "width": "fill_container",
                           "content": "添加 SubAgent 展示组件",
                           "fontFamily": "JetBrains Mono",
-                          "fontSize": 10,
+                          "fontSize": 11,
                           "fontWeight": "normal"
                         }
                       ]
@@ -3004,32 +3034,32 @@
                       "id": "MamMm",
                       "name": "s6row",
                       "width": "fill_container",
-                      "gap": 10,
+                      "gap": 12,
                       "padding": [
-                        4,
+                        6,
                         0
                       ],
-                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
                           "id": "5kg6n",
                           "name": "s6left",
-                          "width": 24,
+                          "width": 20,
                           "height": 26,
                           "layout": "vertical",
+                          "gap": 6,
                           "alignItems": "center",
                           "children": [
                             {
                               "type": "ellipse",
                               "id": "DrEvN",
                               "name": "s6dot",
-                              "fill": "#ffffff14",
-                              "width": 6,
-                              "height": 6,
+                              "fill": "$bg-elevated",
+                              "width": 12,
+                              "height": 12,
                               "stroke": {
                                 "thickness": 1,
-                                "fill": "#ffffff26"
+                                "fill": "$border"
                               }
                             }
                           ]
@@ -3043,7 +3073,7 @@
                           "width": "fill_container",
                           "content": "集成 WebSocket 实时推送 Plan 状态",
                           "fontFamily": "JetBrains Mono",
-                          "fontSize": 10,
+                          "fontSize": 11,
                           "fontWeight": "normal"
                         }
                       ]
@@ -3056,7 +3086,7 @@
               "type": "rectangle",
               "id": "IwNac",
               "name": "saSep",
-              "fill": "$border",
+              "fill": "$border-light",
               "width": "fill_container",
               "height": 1
             },
@@ -3065,11 +3095,12 @@
               "id": "WrjeW",
               "name": "SubAgent Section",
               "width": "fill_container",
+              "fill": "$bg-elevated",
               "layout": "vertical",
-              "gap": 10,
+              "gap": 16,
               "padding": [
-                12,
-                16
+                16,
+                20
               ],
               "children": [
                 {
@@ -3077,6 +3108,7 @@
                   "id": "HOC3b",
                   "name": "saHeader",
                   "width": "fill_container",
+                  "gap": 12,
                   "justifyContent": "space_between",
                   "alignItems": "center",
                   "children": [
@@ -3084,7 +3116,7 @@
                       "type": "frame",
                       "id": "YT4Jr",
                       "name": "saHLeft",
-                      "gap": 8,
+                      "gap": 10,
                       "alignItems": "center",
                       "children": [
                         {
@@ -3111,7 +3143,25 @@
                           "type": "frame",
                           "id": "j3WAp",
                           "name": "saCountBg",
-                          "fill": "$accent-blue-dim",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 0,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "$accent-green",
+                                "position": 0
+                              },
+                              {
+                                "color": "$accent-blue",
+                                "position": 1
+                              }
+                            ]
+                          },
                           "cornerRadius": 4,
                           "padding": [
                             2,
@@ -3132,6 +3182,33 @@
                           ]
                         }
                       ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "OZn0X",
+                      "name": "statusIndicator",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "ellipse",
+                          "id": "0Ibju",
+                          "name": "statusDot",
+                          "fill": "$accent-green",
+                          "width": 8,
+                          "height": 8
+                        },
+                        {
+                          "type": "text",
+                          "id": "sTo4j",
+                          "name": "statusText",
+                          "fill": "$text-primary",
+                          "content": "2 active",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 11,
+                          "fontWeight": "500"
+                        }
+                      ]
                     }
                   ]
                 },
@@ -3140,28 +3217,40 @@
                   "id": "b3p7s",
                   "name": "agentGrid",
                   "width": "fill_container",
-                  "gap": 10,
+                  "gap": 16,
+                  "padding": [
+                    0,
+                    8
+                  ],
                   "children": [
                     {
                       "type": "frame",
                       "id": "P7dqI",
                       "name": "agent-executor",
                       "width": "fill_container",
-                      "fill": "#ffffff04",
-                      "cornerRadius": 8,
+                      "fill": "$bg-elevated",
+                      "cornerRadius": 12,
                       "stroke": {
                         "thickness": 1,
-                        "fill": "#00d4ff20"
+                        "fill": "#00ff8810"
+                      },
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#00ff8820",
+                        "blur": 8
                       },
                       "layout": "vertical",
-                      "gap": 8,
+                      "gap": 12,
                       "padding": 12,
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
                           "id": "hEkWP",
                           "name": "a1top",
                           "width": "fill_container",
+                          "gap": 8,
                           "justifyContent": "space_between",
                           "alignItems": "center",
                           "children": [
@@ -3182,7 +3271,7 @@
                                   "effect": {
                                     "type": "shadow",
                                     "shadowType": "outer",
-                                    "color": "#00ff8880",
+                                    "color": "$shadow-color",
                                     "blur": 4
                                   }
                                 },
@@ -3202,7 +3291,7 @@
                               "type": "frame",
                               "id": "HAxOC",
                               "name": "a1badge",
-                              "fill": "$accent-green-dim",
+                              "fill": "$bg-elevated",
                               "cornerRadius": 3,
                               "padding": [
                                 2,
@@ -3278,11 +3367,11 @@
                               "type": "frame",
                               "id": "DGcm0",
                               "name": "a1t1",
-                              "fill": "$accent-blue-dim",
+                              "fill": "$bg-elevated",
                               "cornerRadius": 3,
                               "stroke": {
                                 "thickness": 1,
-                                "fill": "#00d4ff20"
+                                "fill": "\\$accent-blue-dim"
                               },
                               "padding": [
                                 2,
@@ -3306,11 +3395,11 @@
                               "type": "frame",
                               "id": "pRVwU",
                               "name": "a1t2",
-                              "fill": "$accent-blue-dim",
+                              "fill": "$bg-elevated",
                               "cornerRadius": 3,
                               "stroke": {
                                 "thickness": 1,
-                                "fill": "#00d4ff20"
+                                "fill": "\\$accent-blue-dim"
                               },
                               "padding": [
                                 2,
@@ -3339,21 +3428,29 @@
                       "id": "0qzcL",
                       "name": "agent-researcher",
                       "width": "fill_container",
-                      "fill": "#ffffff04",
-                      "cornerRadius": 8,
+                      "fill": "$bg-elevated",
+                      "cornerRadius": 12,
                       "stroke": {
                         "thickness": 1,
-                        "fill": "#ffb80020"
+                        "fill": "#ffb80010"
+                      },
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#ffb80020",
+                        "blur": 8
                       },
                       "layout": "vertical",
-                      "gap": 8,
+                      "gap": 12,
                       "padding": 12,
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
                           "id": "xTQix",
                           "name": "a2top",
                           "width": "fill_container",
+                          "gap": 8,
                           "justifyContent": "space_between",
                           "alignItems": "center",
                           "children": [
@@ -3374,7 +3471,7 @@
                                   "effect": {
                                     "type": "shadow",
                                     "shadowType": "outer",
-                                    "color": "#ffb80080",
+                                    "color": "$shadow-amber-color",
                                     "blur": 4
                                   }
                                 },
@@ -3394,7 +3491,25 @@
                               "type": "frame",
                               "id": "jVHeU",
                               "name": "a2badge",
-                              "fill": "$accent-amber-dim",
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 0,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "$accent-green",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "$accent-blue",
+                                    "position": 1
+                                  }
+                                ]
+                              },
                               "cornerRadius": 3,
                               "padding": [
                                 2,
@@ -3470,11 +3585,29 @@
                               "type": "frame",
                               "id": "v4qvC",
                               "name": "a2t1",
-                              "fill": "$accent-blue-dim",
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 0,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "$accent-green",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "$accent-blue",
+                                    "position": 1
+                                  }
+                                ]
+                              },
                               "cornerRadius": 3,
                               "stroke": {
                                 "thickness": 1,
-                                "fill": "#00d4ff20"
+                                "fill": "\\$accent-blue-dim"
                               },
                               "padding": [
                                 2,
@@ -3498,11 +3631,29 @@
                               "type": "frame",
                               "id": "2lwJv",
                               "name": "a2t2",
-                              "fill": "$accent-blue-dim",
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 0,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "$accent-green",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "$accent-blue",
+                                    "position": 1
+                                  }
+                                ]
+                              },
                               "cornerRadius": 3,
                               "stroke": {
                                 "thickness": 1,
-                                "fill": "#00d4ff20"
+                                "fill": "\\$accent-blue-dim"
                               },
                               "padding": [
                                 2,
@@ -3526,11 +3677,29 @@
                               "type": "frame",
                               "id": "aw4K3",
                               "name": "a2t3",
-                              "fill": "$accent-blue-dim",
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "rotation": 0,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "$accent-green",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "$accent-blue",
+                                    "position": 1
+                                  }
+                                ]
+                              },
                               "cornerRadius": 3,
                               "stroke": {
                                 "thickness": 1,
-                                "fill": "#00d4ff20"
+                                "fill": "\\$accent-blue-dim"
                               },
                               "padding": [
                                 2,
@@ -3602,7 +3771,7 @@
     },
     "bg-card": {
       "type": "color",
-      "value": "#1a1a1f"
+      "value": "#131316"
     },
     "bg-card-hover": {
       "type": "color",
@@ -3610,7 +3779,7 @@
     },
     "bg-elevated": {
       "type": "color",
-      "value": "#131316"
+      "value": "#1a1a1f"
     },
     "border": {
       "type": "color",
@@ -3639,6 +3808,26 @@
     "text-secondary": {
       "type": "color",
       "value": "#a0a0aa"
+    },
+    "border-active": {
+      "type": "color",
+      "value": "rgba(0, 212, 255, 0.15)"
+    },
+    "border-hover": {
+      "type": "color",
+      "value": "rgba(255, 184, 0, 0.2)"
+    },
+    "shadow-amber-color": {
+      "type": "color",
+      "value": "rgba(255, 184, 0, 0.2)"
+    },
+    "shadow-color": {
+      "type": "color",
+      "value": "rgba(0, 212, 255, 0.2)"
+    },
+    "text-tertiary": {
+      "type": "color",
+      "value": "#8a8a92"
     }
   }
 }

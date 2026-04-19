@@ -1,4 +1,5 @@
 import type { Session } from '../../api/monitor'
+import { Loader2 } from 'lucide-react'
 
 interface SessionCardProps {
   session: Session
@@ -168,16 +169,17 @@ export default function SessionCard({ session, onKill, killing, onActivate, acti
         ${canActivate ? 'cursor-pointer' : ''}
       `}
       style={{
-        background: 'var(--color-bg-card)',
+        background: activating ? `${style.color}08` : 'var(--color-bg-card)',
         borderWidth: 1,
         borderStyle: 'solid',
-        borderColor: style.borderColor,
+        borderColor: activating ? `${style.color}40` : style.borderColor,
         borderLeftWidth: 2,
         borderLeftColor: style.color,
         // hover 时左侧边框发光
         '--hover-glow': `0 0 12px ${style.color}`,
       } as React.CSSProperties}
       onMouseEnter={(e) => {
+        if (activating) return
         const el = e.currentTarget
         el.style.borderLeftColor = style.color
         el.style.boxShadow = `0 0 16px ${style.color}33, inset 0 0 30px ${style.color}08`
@@ -185,6 +187,7 @@ export default function SessionCard({ session, onKill, killing, onActivate, acti
         el.style.borderLeftColor = style.color
       }}
       onMouseLeave={(e) => {
+        if (activating) return
         const el = e.currentTarget
         el.style.boxShadow = 'none'
         el.style.background = 'var(--color-bg-card)'
@@ -300,6 +303,22 @@ export default function SessionCard({ session, onKill, killing, onActivate, acti
         ) : null}
 
         <div className="flex-1" />
+
+        {/* 激活中加载提示 */}
+        {activating && (
+          <span
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono flex-shrink-0 animate-pulse"
+            style={{
+              lineHeight: LH,
+              color: style.color,
+              background: `${style.color}15`,
+              border: `1px solid ${style.color}25`,
+            }}
+          >
+            <Loader2 size={11} className="animate-spin" />
+            跳转中...
+          </span>
+        )}
 
         {/* 子代理数量 */}
         {(session.activeSubagentsCount ?? 0) > 0 && (

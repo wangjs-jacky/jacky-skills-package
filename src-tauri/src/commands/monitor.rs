@@ -519,16 +519,25 @@ fn walk_process_tree(start_pid: u32) -> (Vec<u32>, String) {
     (pids, detected_ide)
 }
 
-/// 激活终端窗口
+/// 激活终端窗口（async 避免阻塞 Tauri 主线程）
 ///
 /// IDE 终端（vscode/cursor）:
 /// 1. 从 Claude PID 遍历进程树，检测真正的 IDE + 收集所有祖先 PID
-/// 2. 用 CLI（code -r / cursor -r）激活正确的工作区窗口
-/// 3. 通过 vibe-island.terminal-focus URI handler 精准跳转到对应终端 Tab
+/// 2. 通过 vibe-island.terminal-focus URI handler 精准跳转到对应终端 Tab
 ///
 /// 普通终端（iterm/warp/terminal）：通过 AppleScript 激活应用窗口。
 #[tauri::command]
-pub fn activate_terminal(params: ActivateParams) -> Result<MonitorOperationResult> {
+pub async fn activate_terminal(params: ActivateParams) -> Result<MonitorOperationResult> {
+    // 将阻塞 IO 放到后台线程，避免冻结主线程
+    tokio::task::spawn_blocking(move || activate_terminal_blocking(params))
+        .await
+        .map_err(|e| crate::AppError::Io(std::io::Error::new(std::io::ErrorKind::Other, format!("激活终端任务失败: {}", e))))?
+}
+
+fn activate_terminal_blocking(params: ActivateParams) -> Result<MonitorOperationResult> {
+    let total_start = std::time::Instant::now();
+    eprintln!("activate_terminal: [timing] === START terminal={} pid={:?} ===", params.terminal, params.pid);
+
     let info = match get_terminal_info(&params.terminal) {
         Some(info) => info,
         None => {
@@ -537,12 +546,14 @@ pub fn activate_terminal(params: ActivateParams) -> Result<MonitorOperationResul
         }
     };
 
-    // ===== 非 IDE 终端：简单 AppleScript 激活 =====
+    // ===== 非 IDE 终端：用 macOS open 命令激活 =====
     if !is_ide_terminal(&params.terminal) {
-        let activate_script = format!(r#"tell application id "{}" to activate"#, info.bundle_id);
-        let result = Command::new("osascript").args(["-e", &activate_script]).output();
+        // open -a 通过 LaunchServices 激活应用，不受后台线程限制
+        let result = Command::new("open")
+            .args(["-a", info.app_name])
+            .output();
         if let Err(e) = result {
-            eprintln!("activate_terminal: osascript failed: {}", e);
+            eprintln!("activate_terminal: open -a {} failed: {}", info.app_name, e);
             return Ok(MonitorOperationResult { success: false });
         }
         return Ok(MonitorOperationResult { success: true });
@@ -551,10 +562,12 @@ pub fn activate_terminal(params: ActivateParams) -> Result<MonitorOperationResul
     // ===== IDE 终端（vscode/cursor）=====
 
     // 步骤 1：遍历进程树，收集祖先 PID 并检测真正的 IDE
+    let start = std::time::Instant::now();
     let (ancestor_pids, detected_ide) = match params.pid {
         Some(pid) => walk_process_tree(pid),
         None => (Vec::new(), String::new()),
     };
+    eprintln!("activate_terminal: [timing] walk_process_tree took {:?}", start.elapsed());
 
     // 优先使用进程树检测到的 IDE，回退到前端报告的类型
     let effective_terminal = if !detected_ide.is_empty() {
@@ -596,9 +609,11 @@ pub fn activate_terminal(params: ActivateParams) -> Result<MonitorOperationResul
         } else {
             format!("{}://workbench.action.terminal.focus", effective_info.url_scheme)
         };
-        eprintln!("activate_terminal: opening URI {}", url);
+        let uri_start = std::time::Instant::now();
+        eprintln!("activate_terminal: [timing] opening URI {} at {:?}", url, std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default());
         // 使用 spawn 避免 output() 阻塞导致前端 invoke 挂起
         let _ = Command::new("open").arg(&url).spawn();
+        eprintln!("activate_terminal: [timing] open URI spawn took {:?}", uri_start.elapsed());
     } else {
         // 非 IDE 终端（iterm/warp 等）不应走到这里，但作为安全网
         let activate_script = format!(r#"tell application id "{}" to activate"#, effective_info.bundle_id);
@@ -607,6 +622,7 @@ pub fn activate_terminal(params: ActivateParams) -> Result<MonitorOperationResul
             .spawn();
     }
 
+    eprintln!("activate_terminal: [timing] === END total took {:?} ===", total_start.elapsed());
     Ok(MonitorOperationResult { success: true })
 }
 
@@ -629,26 +645,59 @@ pub struct ExtensionCheckResult {
     pub installed: bool,
 }
 
-/// 检测 IDE 是否安装了 focus-terminal 扩展
+// ========== 扩展检测缓存 ==========
+
+use std::collections::HashMap;
+use std::sync::LazyLock;
+use std::sync::Mutex;
+
+/// 扩展安装状态缓存（终端类型 → 是否已安装）
+/// 安装成功后自动刷新，避免每次点击都跑 code --list-extensions（2-5 秒）
+static EXTENSION_CACHE: LazyLock<Mutex<HashMap<String, bool>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// 检测 IDE 是否安装了 focus-terminal 扩展（async + 缓存）
 #[tauri::command]
-pub fn check_terminal_extension(terminal: String) -> Result<ExtensionCheckResult> {
-    let cli = match get_ide_cli(&terminal) {
-        Some(cli) => cli,
-        None => return Ok(ExtensionCheckResult { installed: false }),
-    };
-
-    let output = Command::new(cli)
-        .args(["--list-extensions"])
-        .output();
-
-    match output {
-        Ok(out) => {
-            let extensions = String::from_utf8_lossy(&out.stdout);
-            let installed = extensions.lines().any(|line| line.trim() == FOCUS_TERMINAL_EXTENSION);
-            Ok(ExtensionCheckResult { installed })
+pub async fn check_terminal_extension(terminal: String) -> Result<ExtensionCheckResult> {
+    // 1. 查缓存，命中则直接返回
+    {
+        let cache = EXTENSION_CACHE.lock().unwrap();
+        if let Some(&installed) = cache.get(&terminal) {
+            return Ok(ExtensionCheckResult { installed });
         }
-        Err(_) => Ok(ExtensionCheckResult { installed: false }),
     }
+
+    // 2. 缓存未命中，实际检测（后台线程）
+    let t = terminal.clone();
+    let result = tokio::task::spawn_blocking(move || -> Result<ExtensionCheckResult> {
+        let cli = match get_ide_cli(&t) {
+            Some(cli) => cli,
+            None => return Ok(ExtensionCheckResult { installed: false }),
+        };
+
+        let output = Command::new(cli)
+            .args(["--list-extensions"])
+            .output();
+
+        match output {
+            Ok(out) => {
+                let extensions = String::from_utf8_lossy(&out.stdout);
+                let installed = extensions.lines().any(|line| line.trim() == FOCUS_TERMINAL_EXTENSION);
+                Ok(ExtensionCheckResult { installed })
+            }
+            Err(_) => Ok(ExtensionCheckResult { installed: false }),
+        }
+    })
+    .await
+    .map_err(|e| crate::AppError::Io(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        format!("extension check task failed: {}", e),
+    )))??;
+
+    // 3. 写入缓存
+    EXTENSION_CACHE.lock().unwrap().insert(terminal, result.installed);
+
+    Ok(result)
 }
 
 #[derive(Debug, Serialize)]
@@ -658,42 +707,56 @@ pub struct ExtensionInstallResult {
     pub message: String,
 }
 
-/// 安装 focus-terminal 扩展到 IDE
+/// 安装 focus-terminal 扩展到 IDE（async + 安装成功后刷新缓存）
 #[tauri::command]
-pub fn install_terminal_extension(terminal: String) -> Result<ExtensionInstallResult> {
-    let cli = match get_ide_cli(&terminal) {
-        Some(cli) => cli,
-        None => {
-            return Ok(ExtensionInstallResult {
+pub async fn install_terminal_extension(terminal: String) -> Result<ExtensionInstallResult> {
+    let t = terminal.clone();
+    let result = tokio::task::spawn_blocking(move || -> Result<ExtensionInstallResult> {
+        let cli = match get_ide_cli(&t) {
+            Some(cli) => cli,
+            None => {
+                return Ok(ExtensionInstallResult {
+                    success: false,
+                    message: format!("unsupported terminal: {}", t),
+                });
+            }
+        };
+
+        let output = Command::new(cli)
+            .args(["--install-extension", FOCUS_TERMINAL_EXTENSION])
+            .output();
+
+        match output {
+            Ok(out) => {
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                let success = out.status.success();
+                let message = if success {
+                    "installed".to_string()
+                } else {
+                    format!("install failed: {}", stderr.trim())
+                };
+                eprintln!("install_terminal_extension: stdout={}, stderr={}", stdout.trim(), stderr.trim());
+                Ok(ExtensionInstallResult { success, message })
+            }
+            Err(e) => Ok(ExtensionInstallResult {
                 success: false,
-                message: format!("不支持的终端类型: {}", terminal),
-            });
+                message: format!("exec failed: {}, please install {} first", e, cli),
+            }),
         }
-    };
+    })
+    .await
+    .map_err(|e| crate::AppError::Io(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        format!("extension install task failed: {}", e),
+    )))??;
 
-    let output = Command::new(cli)
-        .args(["--install-extension", FOCUS_TERMINAL_EXTENSION])
-        .output();
-
-    match output {
-        Ok(out) => {
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            let success = out.status.success();
-            // vsce 成功时输出包含 "was successfully installed"
-            let message = if success {
-                "安装成功".to_string()
-            } else {
-                format!("安装失败: {}", stderr.trim())
-            };
-            eprintln!("install_terminal_extension: stdout={}, stderr={}", stdout.trim(), stderr.trim());
-            Ok(ExtensionInstallResult { success, message })
-        }
-        Err(e) => Ok(ExtensionInstallResult {
-            success: false,
-            message: format!("执行失败: {}。请确认已安装 {}", e, cli),
-        }),
+    // 安装成功后刷新缓存
+    if result.success {
+        EXTENSION_CACHE.lock().unwrap().insert(terminal, true);
     }
+
+    Ok(result)
 }
 
 // ========== 通用 HTTP 代理（绕过 CORS） ==========

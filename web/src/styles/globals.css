@@ -167,6 +167,17 @@ body::after {
   }
 }
 
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Utility classes */
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
@@ -178,6 +189,10 @@ body::after {
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out forwards;
 }
 
 /* Staggered animation delays */
