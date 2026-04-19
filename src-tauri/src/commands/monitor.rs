@@ -626,6 +626,28 @@ fn activate_terminal_blocking(params: ActivateParams) -> Result<MonitorOperation
     Ok(MonitorOperationResult { success: true })
 }
 
+// ========== 终端类型检测 ==========
+
+/// 批量检测会话的真实终端类型（修正 daemon 误判 Cursor 为 VSCode 的问题）
+#[tauri::command]
+pub async fn detect_terminals(pids: Vec<u32>) -> Result<std::collections::HashMap<u32, String>> {
+    tokio::task::spawn_blocking(move || {
+        let mut results = std::collections::HashMap::new();
+        for pid in pids {
+            let (_, detected_ide) = walk_process_tree(pid);
+            if !detected_ide.is_empty() {
+                results.insert(pid, detected_ide);
+            }
+        }
+        Ok(results)
+    })
+    .await
+    .map_err(|e| crate::AppError::Io(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        format!("detect_terminals task failed: {}", e),
+    )))?
+}
+
 // ========== VSCode/Cursor 扩展管理 ==========
 
 const FOCUS_TERMINAL_EXTENSION: &str = "jackywjs.focus-terminal";

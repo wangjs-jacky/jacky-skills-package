@@ -323,6 +323,15 @@ export const monitorApi = {
     }
   },
 
+  // --- 终端类型检测 ---
+
+  async detectTerminals(pids: number[]): Promise<Record<number, string>> {
+    const result = await invoke<Record<number, string>>('detect_terminals', { pids })
+    return result
+  },
+
+  // --- 终端窗口激活 ---
+
   // --- 终端窗口激活 ---
 
   async activateTerminal(terminal: TerminalType, project: string, pid?: number, cwd?: string): Promise<MonitorApiResult<MonitorOperationResult>> {

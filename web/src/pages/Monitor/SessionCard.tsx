@@ -155,9 +155,9 @@ export default function SessionCard({ session, onKill, killing, onActivate, acti
   // 整个卡片可点击跳转（仅非 unknown 终端且未在激活中）
   const canActivate = !!onActivate && session.terminal !== 'unknown' && !activating
 
-  // 完成态文字样式
+  // 完成态文字样式（降低透明度但不划线）
   const completedStyle: React.CSSProperties = isCompleted
-    ? { textDecoration: 'line-through', textDecorationColor: 'rgba(255,255,255,0.2)', opacity: 0.7 }
+    ? { opacity: 0.6 }
     : {}
 
   return (

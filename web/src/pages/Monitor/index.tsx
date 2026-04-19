@@ -47,7 +47,10 @@ export default function MonitorPage() {
   // WebSocket 连接（守护进程运行时自动连接）
   const { connected, reconnecting, lastError: wsError } = useMonitorWebSocket({
     enabled: daemonRunning,
-    onSessionsInit: (s) => setSessions(s),
+    onSessionsInit: (s) => {
+      setSessions(s)
+      correctTerminalTypes(s)
+    },
     onSessionUpdate: (session) => {
       setSessions((prev) => {
         const idx = prev.findIndex((s) => s.pid === session.pid)
@@ -121,6 +124,22 @@ export default function MonitorPage() {
 
   // ========== 数据加载 ==========
 
+  // 修正 daemon 上报的终端类型（Cursor 被误报为 VSCode）
+  const correctTerminalTypes = useCallback(async (sessions: Session[]) => {
+    const idePids = sessions
+      .filter((s) => (s.terminal === 'vscode' || s.terminal === 'cursor') && s.pid)
+      .map((s) => s.pid)
+    if (idePids.length === 0) return
+    try {
+      const detected = await monitorApi.detectTerminals(idePids)
+      if (Object.keys(detected).length > 0) {
+        setSessions((prev) =>
+          prev.map((s) => detected[s.pid] ? { ...s, terminal: detected[s.pid] as TerminalType } : s)
+        )
+      }
+    } catch { /* 静默忽略 */ }
+  }, [])
+
   const loadDaemonData = useCallback(async (showErrors = true) => {
     const results = await Promise.allSettled([
       monitorApi.getSessions(),
@@ -134,6 +153,7 @@ export default function MonitorPage() {
       const r = results[0].value
       if (r.ok) {
         setSessions(r.data)
+        correctTerminalTypes(r.data)
       } else if (showErrors) {
         showToast(`加载会话失败: ${r.error.message}`, 'error')
       }
@@ -348,51 +368,42 @@ export default function MonitorPage() {
     }, 8000)
 
     try {
-      // IDE 终端（vscode/cursor）：检查扩展安装状态
-      // 前端缓存命中 → 直接跳转（零延迟）
-      // 前端缓存未命中 → 查 Rust 缓存 → 仍未命中则实际检测
       const isIde = session.terminal === 'vscode' || session.terminal === 'cursor'
-      if (isIde) {
-        const cachedInstalled = extensionCacheRef.current[session.terminal]
-        const extensionInstalled = cachedInstalled !== undefined
-          ? cachedInstalled
-          : (await monitorApi.checkTerminalExtension(session.terminal)).data?.installed ?? true
 
-        if (!extensionInstalled) {
-          const terminalLabel = session.terminal === 'vscode' ? 'VSCode' : 'Cursor'
-          showToast(
-            `需要安装 focus-terminal 扩展才能精准跳转 ${terminalLabel} 终端`,
-            'warning',
-            {
-              action: {
-                label: '安装',
-                onClick: async () => {
-                  const installResult = await monitorApi.installTerminalExtension(session.terminal)
-                  if (installResult.ok && installResult.data.success) {
-                    extensionCacheRef.current[session.terminal] = true
-                    showToast(`${terminalLabel} 扩展安装成功`, 'success')
-                    const result = await monitorApi.activateTerminal(session.terminal, session.project, session.ppid, session.cwd)
-                    if (result.ok && result.data.success) {
-                      showToast('已跳转到终端窗口', 'success')
-                    }
-                  } else {
-                    const msg = installResult.ok ? installResult.data.message : installResult.error.message
-                    showToast(`安装失败: ${msg}`, 'error')
+      // IDE 终端：用前端缓存即时判断扩展是否安装（不调 invoke，零延迟）
+      // 缓存来源：初始化时后台预检的结果
+      if (isIde && extensionCacheRef.current[session.terminal] === false) {
+        const terminalLabel = session.terminal === 'vscode' ? 'VSCode' : 'Cursor'
+        showToast(
+          `需要安装 focus-terminal 扩展才能精准跳转 ${terminalLabel} 终端`,
+          'warning',
+          {
+            action: {
+              label: '安装',
+              onClick: async () => {
+                const installResult = await monitorApi.installTerminalExtension(session.terminal)
+                if (installResult.ok && installResult.data.success) {
+                  extensionCacheRef.current[session.terminal] = true
+                  showToast(`${terminalLabel} 扩展安装成功`, 'success')
+                  const result = await monitorApi.activateTerminal(session.terminal, session.project, session.ppid, session.cwd)
+                  if (result.ok && result.data.success) {
+                    showToast('已跳转到终端窗口', 'success')
                   }
-                },
+                } else {
+                  const msg = installResult.ok ? installResult.data.message : installResult.error.message
+                  showToast(`安装失败: ${msg}`, 'error')
+                }
               },
             },
-          )
-          return
-        }
+          },
+        )
+        return
       }
 
-      // 直接跳转（扩展已安装 / 非 IDE 终端 / 缓存命中）
+      // 直接跳转（扩展已安装 / 非 IDE 终端 / 缓存未就绪时乐观跳转）
       const result = await monitorApi.activateTerminal(session.terminal, session.project, session.ppid, session.cwd)
       if (result.ok && result.data.success) {
         showToast('已跳转到终端窗口', 'success')
-      } else if (result.ok && !result.data.success) {
-        showToast('跳转失败：无法识别的终端类型', 'error')
       } else if (!result.ok) {
         showToast(`跳转失败: ${result.error.message}`, 'error')
       }

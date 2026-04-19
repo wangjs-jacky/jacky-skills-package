@@ -49,6 +49,7 @@ fn main() {
             j_skills_lib::commands::monitor_set_config,
             j_skills_lib::commands::monitor_fetch,
             j_skills_lib::commands::activate_terminal,
+            j_skills_lib::commands::detect_terminals,
             j_skills_lib::commands::check_terminal_extension,
             j_skills_lib::commands::install_terminal_extension,
             j_skills_lib::commands::list_claude_md_files,
