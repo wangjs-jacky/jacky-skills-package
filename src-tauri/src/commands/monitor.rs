@@ -716,8 +716,10 @@ pub async fn check_terminal_extension(terminal: String) -> Result<ExtensionCheck
         format!("extension check task failed: {}", e),
     )))??;
 
-    // 3. 写入缓存
-    EXTENSION_CACHE.lock().unwrap().insert(terminal, result.installed);
+    // 3. 写入缓存（仅缓存成功安装的结果，false 不缓存以便下次重试）
+    if result.installed {
+        EXTENSION_CACHE.lock().unwrap().insert(terminal, result.installed);
+    }
 
     Ok(result)
 }

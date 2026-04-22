@@ -122,6 +122,18 @@ pnpm typecheck
 3. 边界：确认正常 skill 的加载不受影响
 ```
 
+## 版本号管理
+
+**升级版本时，必须同步修改以下 3 个文件中的 version 字段：**
+
+| 文件 | 读取方式 | 作用 |
+|------|---------|------|
+| `src-tauri/Cargo.toml` → `version` | Rust 编译时 `env!("CARGO_PKG_VERSION")` | **更新判断的核心源**（`check_for_update` 用它与 GitHub release tag 比对）、Settings 页面显示 |
+| `src-tauri/tauri.conf.json` → `"version"` | 前端 `getVersion()` + Tauri 打包 | Sidebar 显示、**打包写入 .app 的版本号** |
+| `package.json` → `"version"` | npm/pnpm | monorepo 根版本 |
+
+> **遗漏任何一个都会导致版本号不一致**。历史教训：bump 到 0.4.0 时漏改 Cargo.toml，导致 Sidebar 显示 0.4.0 而 Settings 显示 0.3.3，且错误地触发更新提示。
+
 ## 发布
 
 | 包 | 标签格式 | 产物 |

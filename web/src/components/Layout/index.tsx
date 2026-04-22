@@ -9,7 +9,7 @@ interface LayoutProps {
 }
 
 // 需要撑满 main 区域的页面（无 padding 包裹）
-const FULL_PAGES = ['/profiles', '/monitor']
+const FULL_PAGES = ['/profiles']
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
