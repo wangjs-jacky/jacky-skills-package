@@ -17,6 +17,7 @@ import {
   updateSourceFolder,
   listSourceFolders,
 } from '../lib/registry.js'
+import { readSkillMetadata } from '../lib/skill-metadata.js'
 import { success, error, info, warn } from '../lib/log.js'
 import { isCancel } from '@clack/prompts'
 
@@ -101,12 +102,14 @@ async function linkSingleSkill(
   try {
     createSymlink(targetPath, linkPath)
 
-    // 注册到 registry
+    // 注册到 registry（包含 metadata）
+    const metadata = readSkillMetadata(targetPath)
     const skillData = {
       name: skillName,
       path: targetPath,
       source: 'linked' as const,
       sourceFolder: dirname(targetPath),
+      category: metadata.category,
     }
     registerSkill(skillData)
 

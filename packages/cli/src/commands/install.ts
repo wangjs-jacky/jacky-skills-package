@@ -30,6 +30,15 @@ import {
 import { success, error, info, warn, verbose } from '../lib/log.js'
 import { setVerboseMode } from '../lib/log.js'
 import { isCancel } from '@clack/prompts'
+import {
+  getProfile,
+  getActiveProfile,
+} from '../lib/profiles.js'
+import { readSkillMetadata } from '../lib/skill-metadata.js'
+import {
+  detectConflicts,
+  type ConflictResult,
+} from '../lib/conflicts.js'
 
 /**
  * 默认安装环境（当使用 -y 但未指定 --env 时）
@@ -129,12 +138,23 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
     .option('-e, --env <environments>', 'Target environments (comma-separated)')
     .option('-y, --yes', 'Skip confirmation prompts and use default environments')
     .option('--all-env', 'Install to all supported environments')
+    .option('--profile [name]', 'Install all skills from a profile')
+    .option('--skip-conflicts', 'Skip conflicting skills instead of prompting')
     .option('--verbose', 'Show detailed logs')
     .option('--json', 'Output as JSON')
     .action(
       async (
         skillName?: string,
-        options?: { global?: boolean; env?: string; yes?: boolean; allEnv?: boolean; verbose?: boolean; json?: boolean }
+        options?: {
+          global?: boolean
+          env?: string
+          yes?: boolean
+          allEnv?: boolean
+          profile?: boolean | string
+          skipConflicts?: boolean
+          verbose?: boolean
+          json?: boolean
+        }
       ) => {
         ensureGlobalDir()
 
@@ -145,6 +165,21 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
         const isGlobal = options?.global || false
         const isYes = options?.yes || false
         const isAllEnv = options?.allEnv || false
+        const isSkipConflicts = options?.skipConflicts || process.env.J_SKILLS_SKIP_CONFLICTS === '1'
+
+        // 处理 profile 模式
+        if (options?.profile !== undefined) {
+          await handleProfileInstall({
+            profileName: typeof options.profile === 'string' ? options.profile : undefined,
+            isGlobal,
+            isYes,
+            isAllEnv,
+            envStr: options?.env,
+            isSkipConflicts,
+            isJson: options?.json || false,
+          })
+          return
+        }
 
         // 如果没有指定 skill 名称，显示帮助
         if (!skillName) {
@@ -161,6 +196,7 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
           console.log('  -e, --env       Target environments (comma-separated)')
           console.log('  -y, --yes       Skip prompts, use default environments')
           console.log('  --all-env       Install to all supported environments')
+          console.log('  --profile       Install all skills from a profile')
           return
         }
 
@@ -222,7 +258,7 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
 
           const selected = await p.multiselect({
             message: 'Where do you want to install this skill?',
-            options: getEnvOptions(),
+            options: getEnvOptions() as any,
             required: false,
           })
 
@@ -282,11 +318,13 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
           ]
           updateSkillEnvironments(skillName, [...new Set(allEnvs)])
         } else {
+          const metadata = readSkillMetadata(found.path)
           registerSkill({
             name: skillName,
             path: found.path,
             source: isGlobal ? 'global' : found.source,
             installedEnvironments: targetEnvs,
+            category: metadata.category,
           })
         }
 
@@ -348,4 +386,291 @@ export function registerInstallCommand(cli: ReturnType<typeof cac>): void {
         }
       }
     )
+}
+
+/**
+ * Profile 批量安装选项
+ */
+interface ProfileInstallOptions {
+  profileName?: string
+  isGlobal: boolean
+  isYes: boolean
+  isAllEnv: boolean
+  envStr?: string
+  isSkipConflicts: boolean
+  isJson: boolean
+}
+
+/**
+ * 处理 profile 批量安装
+ */
+async function handleProfileInstall(options: ProfileInstallOptions): Promise<void> {
+  const { profileName, isGlobal, isYes, isAllEnv, envStr, isSkipConflicts, isJson } = options
+
+  // 解析目标环境
+  let targetEnvs: Environment[]
+
+  if (envStr) {
+    targetEnvs = parseEnvironments(envStr)
+    if (targetEnvs.length === 0) {
+      if (isJson) {
+        console.log(JSON.stringify({ success: false, error: 'No valid environments specified.' }, null, 2))
+        process.exit(1)
+      }
+      error('No valid environments specified.')
+      process.exit(1)
+    }
+  } else if (isAllEnv) {
+    targetEnvs = DEFAULT_ENVS
+    verbose(`Installing to all environments: ${targetEnvs.join(', ')}`)
+  } else if (isYes) {
+    targetEnvs = DEFAULT_ENVS
+    verbose(`Using default environments: ${targetEnvs.join(', ')}`)
+  } else {
+    // 交互式多选
+    const scopeText = isGlobal ? '(global)' : '(project)'
+    p.intro(`Select target environments ${scopeText}`)
+
+    const selected = await p.multiselect({
+      message: 'Where do you want to install these skills?',
+      options: getEnvOptions() as any,
+      required: false,
+    })
+
+    if (isCancel(selected)) {
+      p.cancel('Operation cancelled.')
+      process.exit(0)
+    }
+
+    targetEnvs = selected as Environment[]
+
+    if (targetEnvs.length === 0) {
+      info('No environments selected. Operation cancelled.')
+      return
+    }
+  }
+
+  verbose(`Target environments: ${targetEnvs.join(', ')}`)
+
+  // 解析 profile
+  let resolvedProfileName = profileName
+  if (!resolvedProfileName) {
+    const activeInfo = getActiveProfile()
+    if (!activeInfo) {
+      if (isJson) {
+        console.log(JSON.stringify({ success: false, error: 'No active profile. Use --profile <name> or activate a profile first.' }, null, 2))
+        process.exit(1)
+      }
+      error('No active profile. Use --profile <name> or activate a profile first.')
+      process.exit(1)
+    }
+    resolvedProfileName = activeInfo.profile.name
+  }
+
+  const profile = getProfile(resolvedProfileName)
+  if (!profile) {
+    if (isJson) {
+      console.log(JSON.stringify({ success: false, error: `Profile "${resolvedProfileName}" not found.` }, null, 2))
+      process.exit(1)
+    }
+    error(`Profile "${resolvedProfileName}" not found.`)
+    process.exit(1)
+  }
+
+  verbose(`Using profile: ${profile.name}`)
+
+  // 构建 skill 列表
+  let skillNames: string[] = profile.skills.include
+
+  // default profile 且 include 为空 → 使用所有 linked skills
+  if (profile.name === 'default' && skillNames.length === 0) {
+    const { listSkills } = await import('../lib/registry.js')
+    skillNames = listSkills({ source: 'linked' }).map((s) => s.name)
+    verbose(`Default profile fallback: using all ${skillNames.length} linked skills`)
+  }
+
+  if (skillNames.length === 0) {
+    if (isJson) {
+      console.log(JSON.stringify({ success: true, profile: profile.name, installed: [], message: 'No skills to install.' }, null, 2))
+      return
+    }
+    info(`Profile "${profile.name}" has no skills to install.`)
+    return
+  }
+
+  // 过滤掉不可用的 skills
+  const availableSkills: { name: string; path: string; source: 'linked' | 'global' }[] = []
+  const missingSkills: string[] = []
+  const brokenSkills: string[] = []
+
+  for (const name of skillNames) {
+    const found = findSkill(name)
+    if (!found) {
+      missingSkills.push(name)
+    } else if (found.health === 'broken') {
+      brokenSkills.push(name)
+    } else {
+      availableSkills.push({ name, path: found.path, source: found.source })
+    }
+  }
+
+  if (missingSkills.length > 0) {
+    warn(`Skills not found (skipped): ${missingSkills.join(', ')}`)
+  }
+  if (brokenSkills.length > 0) {
+    warn(`Skills with broken links (skipped): ${brokenSkills.join(', ')}`)
+  }
+
+  if (availableSkills.length === 0) {
+    if (isJson) {
+      console.log(JSON.stringify({ success: false, error: 'No available skills to install from profile.' }, null, 2))
+      process.exit(1)
+    }
+    error('No available skills to install from profile.')
+    process.exit(1)
+  }
+
+  // 冲突检测：同一 category 的多个 skill 视为冲突
+  const conflicts = detectConflicts(availableSkills.map((s) => s.name))
+
+  if (conflicts.conflicts.length > 0) {
+    for (const group of conflicts.conflicts) {
+      warn(`Multiple ${group.category} skills detected: ${group.skills.join(', ')}`)
+    }
+
+    if (isSkipConflicts || isYes) {
+      // 自动跳过所有冲突 skills
+      for (const group of conflicts.conflicts) {
+        warn(`Skipping ${group.category} skills: ${group.skills.join(', ')}`)
+        for (const name of group.skills) {
+          const idx = availableSkills.findIndex((s) => s.name === name)
+          if (idx >= 0) availableSkills.splice(idx, 1)
+        }
+      }
+    } else {
+      // 交互式解决冲突：每个 category 选择一个保留
+      for (const group of conflicts.conflicts) {
+        const options = group.skills.map((name) => ({ value: name, label: name }))
+        options.push({ value: 'skip-all', label: `Skip all ${group.category} skills` })
+
+        const choice = await p.select({
+          message: `Multiple ${group.category} skills conflict. Which one to keep?`,
+          options,
+        })
+
+        if (isCancel(choice)) {
+          p.cancel('Operation cancelled.')
+          process.exit(0)
+        }
+
+        if (choice === 'skip-all') {
+          for (const name of group.skills) {
+            const idx = availableSkills.findIndex((s) => s.name === name)
+            if (idx >= 0) availableSkills.splice(idx, 1)
+          }
+        } else {
+          // 保留选中的，移除同 category 的其他 skills
+          for (const name of group.skills) {
+            if (name !== choice) {
+              const idx = availableSkills.findIndex((s) => s.name === name)
+              if (idx >= 0) availableSkills.splice(idx, 1)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (availableSkills.length === 0) {
+    if (isJson) {
+      console.log(JSON.stringify({ success: false, error: 'All skills were skipped due to conflicts or unavailability.' }, null, 2))
+      process.exit(1)
+    }
+    error('All skills were skipped due to conflicts or unavailability.')
+    process.exit(1)
+  }
+
+  // 开始安装
+  const projectDir = process.cwd()
+  const s = p.spinner()
+  s.start(`Installing ${availableSkills.length} skills from profile "${profile.name}"...`)
+
+  const installed: { name: string; environments: string[] }[] = []
+  const failed: { name: string; error: string }[] = []
+
+  for (const skill of availableSkills) {
+    try {
+      // 全局安装：先复制到全局目录
+      if (isGlobal) {
+        const globalSkillsDir = getGlobalSkillsDir()
+        const globalPath = resolve(globalSkillsDir, skill.name)
+
+        if (lstatSync(globalPath, { throwIfNoEntry: false })) {
+          safeRemovePath(globalPath)
+        }
+        cpSync(skill.path, globalPath, { recursive: true })
+        verbose(`Copied to global: ${globalPath}`)
+      }
+
+      // 安装到各环境
+      for (const env of targetEnvs) {
+        const targetPath = installToEnv(skill.path, env, isGlobal, projectDir)
+        verbose(`Installed ${skill.name} to ${env}: ${targetPath}`)
+      }
+
+      // 更新注册表
+      const { getSkill: getRegistrySkill, updateSkillEnvironments, registerSkill } = await import('../lib/registry.js')
+      const existingSkill = getRegistrySkill(skill.name)
+      if (existingSkill) {
+        const allEnvs = [...(existingSkill.installedEnvironments || []), ...targetEnvs]
+        updateSkillEnvironments(skill.name, [...new Set(allEnvs)])
+      } else {
+        const metadata = readSkillMetadata(skill.path)
+        registerSkill({
+          name: skill.name,
+          path: skill.path,
+          source: isGlobal ? 'global' : skill.source,
+          installedEnvironments: targetEnvs,
+          category: metadata.category,
+        })
+      }
+
+      // 处理 hooks
+      if (targetEnvs.includes('claude-code') && hasSkillHooks(skill.path)) {
+        mergeSkillHooks(skill.path, skill.name)
+      }
+
+      installed.push({ name: skill.name, environments: targetEnvs })
+    } catch (err) {
+      failed.push({ name: skill.name, error: (err as Error).message })
+    }
+  }
+
+  s.stop(`Installed ${installed.length}/${availableSkills.length} skills.`)
+
+  if (failed.length > 0) {
+    for (const f of failed) {
+      error(`Failed to install "${f.name}": ${f.error}`)
+    }
+  }
+
+  if (isJson) {
+    console.log(JSON.stringify({
+      success: failed.length === 0,
+      profile: profile.name,
+      installed: installed.map((i) => ({ name: i.name, environments: i.environments })),
+      failed: failed.map((f) => ({ name: f.name, error: f.error })),
+      skipped: [...missingSkills, ...brokenSkills],
+    }, null, 2))
+    return
+  }
+
+  success(`Installed ${installed.length} skills from profile "${profile.name}".`)
+  for (const i of installed) {
+    info(`  ✓ ${i.name} → ${i.environments.join(', ')}`)
+  }
+
+  if (missingSkills.length > 0 || brokenSkills.length > 0) {
+    info(`\nSkipped ${missingSkills.length + brokenSkills.length} unavailable skills.`)
+  }
 }

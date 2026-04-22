@@ -5,6 +5,7 @@ import DevelopPage from './pages/Develop'
 import SettingsPage from './pages/Settings'
 import MonitorPage from './pages/Monitor'
 import ClaudeMDPage from './pages/ClaudeMD'
+import ProfilesPage from './pages/Profiles'
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       <Routes>
         <Route path="/" element={<SkillsPage />} />
         <Route path="/skills" element={<SkillsPage />} />
+        <Route path="/profiles" element={<ProfilesPage />} />
         <Route path="/develop" element={<DevelopPage />} />
         <Route path="/monitor" element={<MonitorPage />} />
         <Route path="/claudemd" element={<ClaudeMDPage />} />

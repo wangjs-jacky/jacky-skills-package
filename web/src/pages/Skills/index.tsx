@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../../stores'
-import { skillsApi, environmentsApi, configApi, type EnvironmentInfo } from '../../api/client'
-import { Sparkles, Package, Zap, Loader2, ChevronDown, Trash2, X } from 'lucide-react'
+import { skillsApi, environmentsApi, configApi, profilesApi, type EnvironmentInfo } from '../../api/client'
+import { Sparkles, Package, Zap, Loader2, ChevronDown, Trash2, X, Star } from 'lucide-react'
 import SkillList from './SkillList'
 
 export default function SkillsPage() {
-  const { skills, setSkills, config, setConfig, isLoading, setIsLoading, showToast, updateSkillEnvironments } = useStore()
+  const { skills, setSkills, config, setConfig, isLoading, setIsLoading, showToast, updateSkillEnvironments, activeProfile, setActiveProfile } = useStore()
   const [environments, setEnvironments] = useState<EnvironmentInfo[]>([])
   const [installingEnv, setInstallingEnv] = useState<string | null>(null)
   const [showEnvDropdown, setShowEnvDropdown] = useState(false)
@@ -18,10 +18,8 @@ export default function SkillsPage() {
   useEffect(() => {
     loadSkills()
     loadEnvironments()
-    // 如果 store 中还没有 config，主动加载
-    if (!config.defaultEnvironments) {
-      loadConfig()
-    }
+    if (!config.defaultEnvironments) loadConfig()
+    if (!activeProfile) { profilesApi.getActive().then(r => { if (r.success && r.data) setActiveProfile(r.data) }) }
   }, [])
 
   async function loadConfig() {
@@ -281,6 +279,11 @@ export default function SkillsPage() {
           <h2 className="text-3xl font-bold font-mono tracking-tight">
             <span className="gradient-text">Skills</span>
           </h2>
+          {activeProfile && (
+            <span className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-mono rounded-full bg-[var(--color-amber)]/15 text-[var(--color-amber)] border border-[var(--color-amber)]/30">
+              <Star size={10} className="fill-[var(--color-amber)]" /> {activeProfile.name}
+            </span>
+          )}
         </div>
         <p className="text-[var(--color-text-muted)] font-mono text-sm">
           Manage your linked and installed skills

@@ -108,6 +108,31 @@ fn extract_description(skill_path: &Path) -> Option<String> {
     None
 }
 
+/// 从 SKILL.md 的 YAML frontmatter 中提取 category 字段
+fn extract_category(skill_path: &Path) -> Option<String> {
+    let skill_file = skill_path.join("SKILL.md");
+    let file = File::open(&skill_file).ok()?;
+    let reader = BufReader::new(file);
+    let mut lines = reader.lines();
+    let first = lines.next()?.ok()?;
+    if first.trim() != "---" {
+        return None;
+    }
+    for line in lines {
+        let line = line.ok()?;
+        if line.trim() == "---" {
+            break;
+        }
+        if let Some(cat) = line.strip_prefix("category:") {
+            let cat = cat.trim().trim_matches('"').trim();
+            if !cat.is_empty() {
+                return Some(cat.to_string());
+            }
+        }
+    }
+    None
+}
+
 /// 解析 skill 路径，支持 ~ 展开为家目录
 fn resolve_skill_path(path_str: &str) -> PathBuf {
     if path_str.starts_with("~") {
@@ -443,7 +468,7 @@ fn env_definitions(home: &Path) -> Vec<EnvironmentInfo> {
     ]
 }
 
-fn env_path(env: &str) -> Result<(String, PathBuf), String> {
+pub fn env_path(env: &str) -> Result<(String, PathBuf), String> {
     let home = get_home_dir().map_err(|e| e.to_string())?;
     let envs = env_definitions(&home);
     let found = envs
@@ -522,10 +547,13 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<ListSkillsResult,
         .filter(|s| valid_names.contains(&s.name))
         .collect::<Vec<_>>();
 
-    // 补充 description（从 SKILL.md frontmatter 解析）
+    // 补充 description 和 category（从 SKILL.md frontmatter 解析）
     for skill in &mut skills {
         let path = resolve_skill_path(&skill.path);
         skill.description = extract_description(&path);
+        if skill.category.is_none() {
+            skill.category = extract_category(&path);
+        }
     }
 
     Ok(ListSkillsResult {
@@ -590,6 +618,7 @@ pub async fn link_skill(path: String, state: State<'_, AppState>) -> Result<Vec<
             installed_environments: existing.and_then(|s| s.installed_environments),
             installed_at: Some(Utc::now().to_rfc3339()),
             description: extract_description(dir),
+            category: extract_category(dir),
         };
         registry.register(skill_info).map_err(|e| e.to_string())?;
         linked_names.push(skill_name);

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Package, Code, Settings, Terminal, Activity, BookOpen } from 'lucide-react'
+import { Package, Code, Settings, Terminal, Activity, BookOpen, Layers } from 'lucide-react'
 import { getVersion } from '@tauri-apps/api/app'
 
 const navItems = [
   { to: '/skills', icon: Package, label: 'Skills', description: 'Manage skills' },
+  { to: '/profiles', icon: Layers, label: 'Profiles', description: 'Skill groups' },
   { to: '/develop', icon: Code, label: 'Develop', description: 'Create new' },
   { to: '/monitor', icon: Activity, label: 'Monitor', description: 'Track sessions' },
   { to: '/claudemd', icon: BookOpen, label: 'CLAUDE.md', description: 'View configs' },

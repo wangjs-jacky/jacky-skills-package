@@ -117,6 +117,59 @@ export interface ConfigInfo {
   installMethod?: 'copy' | 'symlink'
 }
 
+export interface ProfileSkills {
+  include: string[]
+  exclude?: string[]
+}
+
+export interface ProfileMetadata {
+  author?: string
+  tags?: string[]
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface ProfileInfo {
+  name: string
+  description?: string
+  version: string
+  workflow: string
+  skills: ProfileSkills
+  isActive: boolean
+  skillCount: number
+  metadata?: ProfileMetadata
+}
+
+export interface ActiveProfileRef {
+  name: string
+  scope: string
+  activatedAt: string
+}
+
+export interface ConflictGroup {
+  category: string
+  skills: string[]
+}
+
+export interface SkippedSkill {
+  name: string
+  reason: string
+}
+
+export interface InstallProfileResult {
+  installed: string[]
+  skipped: SkippedSkill[]
+  conflicts: ConflictGroup[]
+}
+
+export interface SwitchProfileResult {
+  installed: string[]
+  uninstalled: string[]
+  skipped: SkippedSkill[]
+  failed: SkippedSkill[]
+  conflicts: ConflictGroup[]
+}
+
 export interface FileInfo {
   name: string
   type: 'file' | 'directory'
@@ -305,5 +358,66 @@ export const configApi = {
       return safeTauriInvoke<ConfigInfo>('update_config', { config: tauriConfig })
     }
     return api.put('config', { json: config }).json<ApiResponse<ConfigInfo>>()
+  },
+}
+
+// Profiles API
+export const profilesApi = {
+  async list(): Promise<ApiResponse<ProfileInfo[]>> {
+    return safeTauriInvoke<ProfileInfo[]>('list_profiles')
+  },
+
+  async get(name: string): Promise<ApiResponse<ProfileInfo>> {
+    return safeTauriInvoke<ProfileInfo>('get_profile', { name })
+  },
+
+  async create(data: { name: string; description?: string; workflow?: string }): Promise<ApiResponse<ProfileInfo>> {
+    return safeTauriInvoke<ProfileInfo>('create_profile', data)
+  },
+
+  async update(name: string, data: { description?: string; workflow?: string; skills?: ProfileSkills }): Promise<ApiResponse<ProfileInfo>> {
+    return safeTauriInvoke<ProfileInfo>('update_profile', { name, ...data })
+  },
+
+  async rename(name: string, newName: string): Promise<ApiResponse<ProfileInfo>> {
+    return safeTauriInvoke<ProfileInfo>('rename_profile', { name, newName })
+  },
+
+  async delete(name: string): Promise<ApiResponse<{ name: string }>> {
+    return safeTauriInvoke<{ name: string }>('delete_profile', { name })
+  },
+
+  async setActive(name: string): Promise<ApiResponse<ActiveProfileRef>> {
+    return safeTauriInvoke<ActiveProfileRef>('set_active_profile', { name })
+  },
+
+  async getActive(): Promise<ApiResponse<ActiveProfileRef | null>> {
+    return safeTauriInvoke<ActiveProfileRef | null>('get_active_profile')
+  },
+
+  async addSkill(profile: string, skill: string): Promise<ApiResponse<ProfileInfo>> {
+    return safeTauriInvoke<ProfileInfo>('add_skill_to_profile', { profile, skill })
+  },
+
+  async removeSkill(profile: string, skill: string): Promise<ApiResponse<ProfileInfo>> {
+    return safeTauriInvoke<ProfileInfo>('remove_skill_from_profile', { profile, skill })
+  },
+
+  async install(name: string, env: string, global: boolean = true, conflictResolution?: Record<string, string>): Promise<ApiResponse<InstallProfileResult>> {
+    return safeTauriInvoke<InstallProfileResult>('install_profile', {
+      name,
+      env,
+      global,
+      conflictResolution: conflictResolution || null,
+    })
+  },
+
+  async switchProfile(name: string, environments: string[], preview: boolean = false, conflictResolution?: Record<string, string>): Promise<ApiResponse<SwitchProfileResult>> {
+    return safeTauriInvoke<SwitchProfileResult>('switch_profile', {
+      name,
+      environments,
+      preview,
+      conflictResolution: conflictResolution || null,
+    })
   },
 }

@@ -19,6 +19,7 @@ import {
 } from '../lib/profiles.js'
 import { ensureGlobalDir, getProjectProfilePath } from '../lib/paths.js'
 import { success, error, info, warn } from '../lib/log.js'
+import { findSkill } from './install.js'
 import type { Profile, WorkflowType } from '../lib/types.js'
 
 /**
@@ -104,6 +105,28 @@ export function registerProfileCommand(cli: ReturnType<typeof cac>): void {
     .action(async (file: string) => {
       await handleProfileImport(file)
     })
+
+  // profile:add-skill
+  cli
+    .command('profile:add-skill <profile> <skill>', 'Add a skill to a profile')
+    .action(async (profileName: string, skillName: string) => {
+      await handleProfileAddSkill(profileName, skillName)
+    })
+
+  // profile:remove-skill
+  cli
+    .command('profile:remove-skill <profile> <skill>', 'Remove a skill from a profile')
+    .action(async (profileName: string, skillName: string) => {
+      await handleProfileRemoveSkill(profileName, skillName)
+    })
+
+  // profile:list-skills
+  cli
+    .command('profile:list-skills [profile]', 'List skills in a profile')
+    .option('--json', 'Output as JSON')
+    .action((profileName?: string, options?: { json?: boolean }) => {
+      handleProfileListSkills(profileName, options?.json)
+    })
 }
 
 /**
@@ -124,7 +147,7 @@ function handleProfileList(jsonOutput?: boolean): void {
       workflow: profile.workflow,
       skillsCount: profile.skills.include.length,
       active: profile.name === activeName,
-      scope: profile.name === activeName ? activeInfo.scope : null,
+      scope: profile.name === activeName ? activeInfo?.scope ?? null : null,
     }))
     console.log(JSON.stringify(result, null, 2))
     return
@@ -646,4 +669,150 @@ async function handleProfileImport(file: string): Promise<void> {
 
   s.stop('Profile imported!')
   success(`Profile "${profile.name}" imported successfully.`)
+}
+
+/**
+ * 处理 profile:add-skill 命令
+ */
+async function handleProfileAddSkill(profileName: string, skillName: string): Promise<void> {
+  ensureGlobalDir()
+
+  const profile = getProfile(profileName)
+  if (!profile) {
+    error(`Profile "${profileName}" not found.`)
+    return
+  }
+
+  // 验证 skill 是否存在
+  const found = findSkill(skillName)
+  if (!found) {
+    warn(`Skill "${skillName}" is not linked or installed globally.`)
+    const confirm = await p.confirm({
+      message: `Add "${skillName}" to profile anyway?`,
+      initialValue: false,
+    })
+    if (isCancel(confirm) || !confirm) {
+      p.cancel('Operation cancelled.')
+      return
+    }
+  } else if (found.health === 'broken') {
+    warn(`Skill "${skillName}" has a broken symlink.`)
+  }
+
+  // 避免重复添加
+  if (profile.skills.include.includes(skillName)) {
+    info(`Skill "${skillName}" is already in profile "${profileName}".`)
+    return
+  }
+
+  profile.skills.include.push(skillName)
+
+  // 如果存在 exclude 列表，移除该 skill
+  if (profile.skills.exclude) {
+    profile.skills.exclude = profile.skills.exclude.filter((s) => s !== skillName)
+  }
+
+  const s = p.spinner()
+  s.start(`Adding "${skillName}" to profile "${profileName}"...`)
+
+  saveProfile(profile)
+
+  s.stop('Skill added!')
+  success(`Skill "${skillName}" added to profile "${profileName}".`)
+}
+
+/**
+ * 处理 profile:remove-skill 命令
+ */
+async function handleProfileRemoveSkill(profileName: string, skillName: string): Promise<void> {
+  ensureGlobalDir()
+
+  const profile = getProfile(profileName)
+  if (!profile) {
+    error(`Profile "${profileName}" not found.`)
+    return
+  }
+
+  if (!profile.skills.include.includes(skillName)) {
+    info(`Skill "${skillName}" is not in profile "${profileName}".`)
+    return
+  }
+
+  const s = p.spinner()
+  s.start(`Removing "${skillName}" from profile "${profileName}"...`)
+
+  profile.skills.include = profile.skills.include.filter((s) => s !== skillName)
+
+  // 如果存在 exclude 列表，也移除该 skill
+  if (profile.skills.exclude) {
+    profile.skills.exclude = profile.skills.exclude.filter((s) => s !== skillName)
+  }
+
+  saveProfile(profile)
+
+  s.stop('Skill removed!')
+  success(`Skill "${skillName}" removed from profile "${profileName}".`)
+}
+
+/**
+ * 处理 profile:list-skills 命令
+ */
+function handleProfileListSkills(profileName?: string, jsonOutput?: boolean): void {
+  ensureGlobalDir()
+
+  let name = profileName
+  if (!name) {
+    const activeInfo = getActiveProfile()
+    if (activeInfo) {
+      name = activeInfo.profile.name
+    } else {
+      error('No active profile found. Please specify a profile name.')
+      return
+    }
+  }
+
+  const profile = getProfile(name)
+  if (!profile) {
+    error(`Profile "${name}" not found.`)
+    return
+  }
+
+  const skills = profile.skills.include
+
+  if (jsonOutput) {
+    console.log(
+      JSON.stringify(
+        {
+          profile: profile.name,
+          skills,
+          count: skills.length,
+        },
+        null,
+        2
+      )
+    )
+    return
+  }
+
+  p.intro(`Skills in profile: ${profile.name}`)
+  console.log('')
+
+  if (skills.length === 0) {
+    info('No skills in this profile.')
+    if (profile.name === 'default') {
+      info('Default profile with empty include uses all linked skills.')
+    }
+  } else {
+    for (const skill of skills) {
+      const found = findSkill(skill)
+      const status = found
+        ? found.health === 'broken'
+          ? '\x1b[31m(broken link)\x1b[0m'
+          : '\x1b[32m(available)\x1b[0m'
+        : '\x1b[33m(not found)\x1b[0m'
+      console.log(`  - ${skill} ${status}`)
+    }
+  }
+
+  console.log('')
 }

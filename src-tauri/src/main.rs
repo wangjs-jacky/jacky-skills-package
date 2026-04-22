@@ -57,6 +57,18 @@ fn main() {
             j_skills_lib::commands::check_for_update,
             j_skills_lib::commands::download_update,
             j_skills_lib::commands::get_app_version,
+            j_skills_lib::commands::list_profiles,
+            j_skills_lib::commands::get_profile,
+            j_skills_lib::commands::create_profile,
+            j_skills_lib::commands::update_profile,
+            j_skills_lib::commands::rename_profile,
+            j_skills_lib::commands::delete_profile,
+            j_skills_lib::commands::set_active_profile,
+            j_skills_lib::commands::get_active_profile,
+            j_skills_lib::commands::add_skill_to_profile,
+            j_skills_lib::commands::remove_skill_from_profile,
+            j_skills_lib::commands::install_profile,
+            j_skills_lib::commands::switch_profile,
         ])
 
         .setup(|app| {

@@ -26,6 +26,7 @@ export interface RegistrySkill {
   installedEnvironments?: string[]
   installedAt?: string
   version?: string
+  category?: string          // 功能分类（如 browser-debug, testing）
 }
 
 /**
@@ -95,6 +96,24 @@ export function registerSkill(skill: RegistrySkill): void {
     installedAt: skill.installedAt || new Date().toISOString(),
   }
   writeRegistry(registry)
+}
+
+/**
+ * 更新 skill 的 category
+ */
+export function updateSkillCategory(
+  name: string,
+  category: string | undefined
+): boolean {
+  const registry = readRegistry()
+  if (!registry.skills[name]) {
+    return false
+  }
+  if (category !== undefined) {
+    registry.skills[name].category = category
+  }
+  writeRegistry(registry)
+  return true
 }
 
 /**

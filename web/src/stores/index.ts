@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import type { SkillInfo, EnvironmentInfo, ConfigInfo } from '../api/client'
+import type { SkillInfo, EnvironmentInfo, ConfigInfo, ProfileInfo, ActiveProfileRef } from '../api/client'
+import { profilesApi } from '../api/client'
 
 interface AppState {
   // Skills
@@ -14,6 +15,13 @@ interface AppState {
   // Config
   config: ConfigInfo
   setConfig: (config: ConfigInfo) => void
+
+  // Profiles
+  profiles: ProfileInfo[]
+  setProfiles: (profiles: ProfileInfo[]) => void
+  activeProfile: ActiveProfileRef | null
+  setActiveProfile: (ref: ActiveProfileRef | null) => void
+  loadProfiles: () => Promise<void>
 
   // UI State
   isLoading: boolean
@@ -45,6 +53,24 @@ export const useStore = create<AppState>((set) => ({
   // Config
   config: {},
   setConfig: (config) => set({ config }),
+
+  // Profiles
+  profiles: [],
+  setProfiles: (profiles) => set({ profiles }),
+  activeProfile: null,
+  setActiveProfile: (activeProfile) => set({ activeProfile }),
+  loadProfiles: async () => {
+    const [profilesRes, activeRes] = await Promise.all([
+      profilesApi.list(),
+      profilesApi.getActive(),
+    ])
+    if (profilesRes.success) {
+      set({ profiles: profilesRes.data })
+    }
+    if (activeRes.success) {
+      set({ activeProfile: activeRes.data })
+    }
+  },
 
   // UI State
   isLoading: false,
