@@ -14,6 +14,23 @@ const MONITOR_DAEMON_URL: &str = "http://127.0.0.1:17530/api/health";
 const MONITOR_CONFIG_DIR: &str = ".config/j-skills";
 const MONITOR_CONFIG_FILE: &str = "monitor-config.json";
 
+/// 必需的 hook 脚本文件列表
+const REQUIRED_HOOK_SCRIPTS: &[&str] = &[
+    "session-start.sh",
+    "session-end.sh",
+    "prompt-submit.sh",
+    "waiting-input.sh",
+    "tool-start.sh",
+    "input-answered.sh",
+    "tool-end.sh",
+    "tool-failure.sh",
+    "response-end.sh",
+    "notification.sh",
+    "pre-compact.sh",
+    "subagent-start.sh",
+    "subagent-stop.sh",
+];
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MonitorCheckResult {
@@ -128,29 +145,82 @@ fn get_monitor_hooks_definition() -> serde_json::Value {
     })
 }
 
-/// 检查 monitor hooks 是否已注入
+/// 检查 hook 脚本文件是否全部存在
+fn hooks_scripts_exist(hooks_dir: &PathBuf) -> bool {
+    if !hooks_dir.exists() {
+        return false;
+    }
+    REQUIRED_HOOK_SCRIPTS.iter().all(|script| {
+        hooks_dir.join(script).exists()
+    })
+}
+
+/// 检查 monitor hooks 是否已注入（同时验证 settings.json marker 和脚本文件存在性）
 #[tauri::command]
 pub fn monitor_check_hooks() -> Result<MonitorCheckResult> {
     let hooks_dir = get_hooks_dir()?;
-    let hooks_dir_exists = hooks_dir.exists();
+    let scripts_exist = hooks_scripts_exist(&hooks_dir);
 
     let settings_path = get_claude_settings_path()?;
-    let installed = if settings_path.exists() {
+    let has_marker = if settings_path.exists() {
         let content = fs::read_to_string(&settings_path)?;
         content.contains(MONITOR_MARKER) || content.contains(SKILL_MARKER)
     } else {
         false
     };
 
+    // installed 仅在 marker + 脚本都存在时为 true
     Ok(MonitorCheckResult {
-        installed,
-        hooks_dir_exists,
+        installed: has_marker && scripts_exist,
+        hooks_dir_exists: scripts_exist,
     })
 }
 
 /// 注入 monitor hooks 到 settings.json
+/// 确保 hook 脚本文件存在，缺失时调用 claude-monitor init 创建
+/// 返回 true 表示脚本就绪，false 表示创建失败
+fn ensure_hooks_scripts() -> Result<bool> {
+    let hooks_dir = get_hooks_dir()?;
+    if hooks_scripts_exist(&hooks_dir) {
+        return Ok(true);
+    }
+
+    eprintln!("monitor_install_hooks: hook scripts missing, running npx init...");
+
+    // 调用 claude-monitor init 创建 hook 脚本
+    let output = Command::new("npx")
+        .args(["@wangjs-jacky/claude-monitor", "init"])
+        .output();
+
+    match output {
+        Ok(out) => {
+            if !out.status.success() {
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                eprintln!("monitor_install_hooks: init failed: {}", stderr.trim());
+            }
+        }
+        Err(e) => {
+            eprintln!("monitor_install_hooks: failed to run npx: {}", e);
+        }
+    }
+
+    // 验证脚本是否创建成功
+    if hooks_scripts_exist(&hooks_dir) {
+        Ok(true)
+    } else {
+        eprintln!("monitor_install_hooks: scripts still missing after init, aborting hooks injection");
+        Ok(false)
+    }
+}
+
 #[tauri::command]
 pub fn monitor_install_hooks() -> Result<MonitorOperationResult> {
+    // 步骤0：确保 hook 脚本文件存在（创建失败则不注入，避免指向不存在的脚本）
+    let scripts_ready = ensure_hooks_scripts()?;
+    if !scripts_ready {
+        return Ok(MonitorOperationResult { success: false });
+    }
+
     let settings_path = get_claude_settings_path()?;
 
     // 确保 settings.json 存在
@@ -672,20 +742,26 @@ pub struct ExtensionCheckResult {
 use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::sync::Mutex;
+use std::time::Instant;
 
-/// 扩展安装状态缓存（终端类型 → 是否已安装）
-/// 安装成功后自动刷新，避免每次点击都跑 code --list-extensions（2-5 秒）
-static EXTENSION_CACHE: LazyLock<Mutex<HashMap<String, bool>>> =
+/// 缓存 TTL：5 分钟
+const EXTENSION_CACHE_TTL_SECS: u64 = 300;
+
+/// 扩展安装状态缓存（终端类型 → (是否已安装, 缓存时间)）
+/// true/false 都缓存，5 分钟 TTL 过期
+static EXTENSION_CACHE: LazyLock<Mutex<HashMap<String, (bool, Instant)>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-/// 检测 IDE 是否安装了 focus-terminal 扩展（async + 缓存）
+/// 检测 IDE 是否安装了 focus-terminal 扩展（async + 双向缓存 + TTL）
 #[tauri::command]
 pub async fn check_terminal_extension(terminal: String) -> Result<ExtensionCheckResult> {
-    // 1. 查缓存，命中则直接返回
+    // 1. 查缓存，命中且未过期则直接返回
     {
         let cache = EXTENSION_CACHE.lock().unwrap();
-        if let Some(&installed) = cache.get(&terminal) {
-            return Ok(ExtensionCheckResult { installed });
+        if let Some((installed, cached_at)) = cache.get(&terminal) {
+            if cached_at.elapsed().as_secs() < EXTENSION_CACHE_TTL_SECS {
+                return Ok(ExtensionCheckResult { installed: *installed });
+            }
         }
     }
 
@@ -716,10 +792,8 @@ pub async fn check_terminal_extension(terminal: String) -> Result<ExtensionCheck
         format!("extension check task failed: {}", e),
     )))??;
 
-    // 3. 写入缓存（仅缓存成功安装的结果，false 不缓存以便下次重试）
-    if result.installed {
-        EXTENSION_CACHE.lock().unwrap().insert(terminal, result.installed);
-    }
+    // 3. 写入缓存（true/false 都缓存，带时间戳用于 TTL 过期）
+    EXTENSION_CACHE.lock().unwrap().insert(terminal, (result.installed, Instant::now()));
 
     Ok(result)
 }
@@ -777,7 +851,7 @@ pub async fn install_terminal_extension(terminal: String) -> Result<ExtensionIns
 
     // 安装成功后刷新缓存
     if result.success {
-        EXTENSION_CACHE.lock().unwrap().insert(terminal, true);
+        EXTENSION_CACHE.lock().unwrap().insert(terminal, (true, Instant::now()));
     }
 
     Ok(result)

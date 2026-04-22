@@ -31,6 +31,12 @@ interface AppState {
   toast: { message: string; type: 'success' | 'error' | 'warning'; action?: { label: string; onClick: () => void } } | null
   showToast: (message: string, type: 'success' | 'error' | 'warning', options?: { action?: { label: string; onClick: () => void } }) => void
   hideToast: () => void
+
+  // Monitor - 已忽略的会话 PID（PID → 添加时间戳），30 分钟 TTL
+  monitorIgnoredPids: Map<number, number>
+  addIgnoredPid: (pid: number) => void
+  isIgnoredPid: (pid: number) => boolean
+  cleanExpiredIgnoredPids: () => void
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -80,4 +86,31 @@ export const useStore = create<AppState>((set) => ({
   toast: null,
   showToast: (message, type, options) => set({ toast: { message, type, action: options?.action } }),
   hideToast: () => set({ toast: null }),
+
+  // Monitor - 已忽略的会话 PID（PID → 添加时间戳），30 分钟 TTL
+  monitorIgnoredPids: new Map<number, number>(),
+  addIgnoredPid: (pid) => set((state) => {
+    const next = new Map(state.monitorIgnoredPids)
+    next.set(pid, Date.now())
+    return { monitorIgnoredPids: next }
+  }),
+  isIgnoredPid: (pid) => {
+    const map = useStore.getState().monitorIgnoredPids
+    const ts = map.get(pid)
+    if (ts === undefined) return false
+    if (Date.now() - ts > 30 * 60 * 1000) {
+      // 过期，异步清理
+      useStore.getState().cleanExpiredIgnoredPids()
+      return false
+    }
+    return true
+  },
+  cleanExpiredIgnoredPids: () => set((state) => {
+    const now = Date.now()
+    const next = new Map(state.monitorIgnoredPids)
+    for (const [pid, ts] of next) {
+      if (now - ts > 30 * 60 * 1000) next.delete(pid)
+    }
+    return { monitorIgnoredPids: next }
+  }),
 }))

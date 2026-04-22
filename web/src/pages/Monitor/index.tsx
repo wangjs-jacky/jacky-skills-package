@@ -41,6 +41,15 @@ export default function MonitorPage() {
   // 扩展安装缓存（终端类型 → 是否已安装），由初始化预检填充
   const extensionCacheRef = useRef<Record<string, boolean>>({})
 
+  // 已忽略的会话 PID — 使用 Zustand 全局 store，面板切换不丢失
+  const { monitorIgnoredPids, addIgnoredPid, isIgnoredPid, cleanExpiredIgnoredPids } = useStore()
+
+  // 过滤掉已忽略的会话（清理过期条目）
+  const filterIgnoredSessions = useCallback((sessions: Session[]): Session[] => {
+    cleanExpiredIgnoredPids()
+    return sessions.filter((s) => !isIgnoredPid(s.pid))
+  }, [cleanExpiredIgnoredPids, isIgnoredPid])
+
   // 初始化错误（传递给 DaemonSetupGuide）
   const [initError, setInitError] = useState<MonitorApiError | null>(null)
 
@@ -48,8 +57,9 @@ export default function MonitorPage() {
   const { connected, reconnecting, lastError: wsError } = useMonitorWebSocket({
     enabled: daemonRunning,
     onSessionsInit: (s) => {
-      setSessions(s)
-      correctTerminalTypes(s)
+      const filtered = filterIgnoredSessions(s)
+      setSessions(filtered)
+      correctTerminalTypes(filtered)
     },
     onSessionUpdate: (session) => {
       setSessions((prev) => {
@@ -152,8 +162,9 @@ export default function MonitorPage() {
     if (results[0].status === 'fulfilled') {
       const r = results[0].value
       if (r.ok) {
-        setSessions(r.data)
-        correctTerminalTypes(r.data)
+        const filtered = filterIgnoredSessions(r.data)
+        setSessions(filtered)
+        correctTerminalTypes(filtered)
       } else if (showErrors) {
         showToast(`加载会话失败: ${r.error.message}`, 'error')
       }
@@ -188,15 +199,16 @@ export default function MonitorPage() {
 
   /**
    * 触发 daemon 扫描已运行但未追踪的 Claude Code 会话
-   * 用于捕获 hooks 安装前已启动的历史终端
-   * 注意：仅触发 daemon 端扫描，不刷新前端数据，调用方需自行刷新
+   * 发现新会话时自动刷新前端数据
    */
-  const discoverSessions = useCallback(async () => {
+  const discoverSessions = useCallback(async (silent = false) => {
     const result = await monitorApi.discoverSessions()
     if (result.ok && result.data.length > 0) {
-      showToast(`发现 ${result.data.length} 个未追踪的 Claude 终端`, 'success')
+      if (!silent) showToast(`发现 ${result.data.length} 个未追踪的 Claude 终端`, 'success')
+      // 发现新会话后刷新数据
+      await loadDaemonData()
     }
-  }, [showToast])
+  }, [showToast, loadDaemonData])
 
   // ========== 健康检查 ==========
 
@@ -244,8 +256,24 @@ export default function MonitorPage() {
 
     // 步骤2：daemon 在线，先扫描历史终端再加载数据
     setDaemonRunning(true)
-    await discoverSessions()
+    await discoverSessions(true)
     await loadDaemonData()
+
+    // 步骤2.5：自动安装 hooks（daemon 在线但 hooks 未安装时静默注入）
+    // hooks 注入后，已运行的 Claude Code 下次触发事件时也会生效
+    const hooksResult = await monitorApi.checkHooks()
+    if (hooksResult.ok && !hooksResult.data.installed) {
+      const installResult = await monitorApi.installHooks()
+      if (installResult.ok && installResult.data.success) {
+        setHooksStatus({ installed: true, hooksDirExists: true })
+        // hooks 安装后重新扫描，捕获所有正在运行的 Claude Code
+        await discoverSessions(true)
+        await loadDaemonData()
+      }
+    } else if (hooksResult.ok) {
+      setHooksStatus(hooksResult.data)
+    }
+
     setPhase({ type: 'ready' })
 
     // 步骤3：后台预检 IDE 扩展（填充前端 + Rust 双重缓存）
@@ -271,10 +299,20 @@ export default function MonitorPage() {
       const result = await monitorApi.startDaemon()
       if (result.ok && result.data.running) {
         setDaemonRunning(true)
-        setPhase({ type: 'ready' })
-        // daemon 启动时会自动扫描，但这里再触发一次确保前端拿到最新数据
-        await discoverSessions()
+        // daemon 启动后会自动扫描，但这里再触发一次确保前端拿到最新数据
+        await discoverSessions(true)
         await loadDaemonData()
+        // 自动安装 hooks
+        const hooksResult = await monitorApi.checkHooks()
+        if (hooksResult.ok && !hooksResult.data.installed) {
+          const installResult = await monitorApi.installHooks()
+          if (installResult.ok && installResult.data.success) {
+            setHooksStatus({ installed: true, hooksDirExists: true })
+            await discoverSessions(true)
+            await loadDaemonData()
+          }
+        }
+        setPhase({ type: 'ready' })
         showToast('守护进程已启动', 'success')
         // 后台预检 IDE 扩展
         ;['vscode', 'cursor'].forEach((t) => {
@@ -343,6 +381,7 @@ export default function MonitorPage() {
     try {
       const result = await monitorApi.killSession(pid)
       if (result.ok) {
+        addIgnoredPid(pid)
         setSessions((prev) => prev.filter((s) => s.pid !== pid))
         showToast('会话已关闭', 'success')
       } else {
@@ -370,42 +409,38 @@ export default function MonitorPage() {
     try {
       const isIde = session.terminal === 'vscode' || session.terminal === 'cursor'
 
-      // IDE 终端：用前端缓存即时判断扩展是否安装（不调 invoke，零延迟）
-      // 缓存来源：初始化时后台预检的结果
-      if (isIde && extensionCacheRef.current[session.terminal] === false) {
-        const terminalLabel = session.terminal === 'vscode' ? 'VSCode' : 'Cursor'
-        showToast(
-          `需要安装 focus-terminal 扩展才能精准跳转 ${terminalLabel} 终端`,
-          'warning',
-          {
-            action: {
-              label: '安装',
-              onClick: async () => {
-                const installResult = await monitorApi.installTerminalExtension(session.terminal)
-                if (installResult.ok && installResult.data.success) {
-                  extensionCacheRef.current[session.terminal] = true
-                  showToast(`${terminalLabel} 扩展安装成功`, 'success')
-                  const result = await monitorApi.activateTerminal(session.terminal, session.project, session.ppid, session.cwd)
-                  if (result.ok && result.data.success) {
-                    showToast('已跳转到终端窗口', 'success')
-                  }
-                } else {
-                  const msg = installResult.ok ? installResult.data.message : installResult.error.message
-                  showToast(`安装失败: ${msg}`, 'error')
-                }
-              },
-            },
-          },
-        )
-        return
-      }
-
-      // 直接跳转（扩展已安装 / 非 IDE 终端 / 缓存未就绪时乐观跳转）
+      // 乐观跳转：缓存为 true 时直接跳转，缓存为 false/undefined 时也尝试跳转
+      // 扩展可能已被用户手动安装，不应仅凭缓存拦截
       const result = await monitorApi.activateTerminal(session.terminal, session.project, session.ppid, session.cwd)
       if (result.ok && result.data.success) {
+        extensionCacheRef.current[session.terminal] = true
         showToast('已跳转到终端窗口', 'success')
       } else if (!result.ok) {
-        showToast(`跳转失败: ${result.error.message}`, 'error')
+        // 跳转失败：IDE 终端提示安装扩展，非 IDE 终端显示错误
+        if (isIde) {
+          const terminalLabel = session.terminal === 'vscode' ? 'VSCode' : 'Cursor'
+          showToast(
+            `跳转失败，需要安装 focus-terminal 扩展才能精准跳转 ${terminalLabel} 终端`,
+            'warning',
+            {
+              action: {
+                label: '安装',
+                onClick: async () => {
+                  const installResult = await monitorApi.installTerminalExtension(session.terminal)
+                  if (installResult.ok && installResult.data.success) {
+                    extensionCacheRef.current[session.terminal] = true
+                    showToast(`${terminalLabel} 扩展安装成功`, 'success')
+                  } else {
+                    const msg = installResult.ok ? installResult.data.message : installResult.error.message
+                    showToast(`安装失败: ${msg}`, 'error')
+                  }
+                },
+              },
+            },
+          )
+        } else {
+          showToast(`跳转失败: ${result.error.message}`, 'error')
+        }
       }
     } finally {
       clearTimeout(safetyTimeout)
