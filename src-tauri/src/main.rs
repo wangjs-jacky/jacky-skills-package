@@ -69,6 +69,8 @@ fn main() {
             j_skills_lib::commands::remove_skill_from_profile,
             j_skills_lib::commands::install_profile,
             j_skills_lib::commands::switch_profile,
+            j_skills_lib::commands::scan_agents_directory,
+            j_skills_lib::commands::remove_external_skill,
         ])
 
         .setup(|app| {

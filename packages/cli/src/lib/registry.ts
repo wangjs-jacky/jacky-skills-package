@@ -27,6 +27,9 @@ export interface RegistrySkill {
   installedAt?: string
   version?: string
   category?: string          // 功能分类（如 browser-debug, testing）
+  originPath?: string        // 原始绝对路径（source=marketplace 时）
+  remoteUrl?: string         // 来源 URL（skills.sh 下载的）
+  installedVia?: 'scan' | 'download'  // 添加方式
 }
 
 /**

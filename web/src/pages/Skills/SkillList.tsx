@@ -7,13 +7,15 @@ import type { SkillInfo, EnvironmentInfo } from '../../api/client'
 interface SkillListProps {
   skills: SkillInfo[]
   environments: EnvironmentInfo[]
-  onUnlink: (name: string) => void
+  onUnlink?: (name: string) => void
   onToggleEnv: (name: string, env: string, enable: boolean) => void
-  onExport: (name: string) => void
+  onExport?: (name: string) => void
   onViewContent: (name: string) => void
+  onRemove?: (name: string) => void
+  isExternal?: boolean
 }
 
-export default function SkillList({ skills, environments, onUnlink, onToggleEnv, onExport, onViewContent }: SkillListProps) {
+export default function SkillList({ skills, environments, onUnlink, onToggleEnv, onExport, onViewContent, onRemove, isExternal }: SkillListProps) {
   const [search, setSearch] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -100,6 +102,8 @@ export default function SkillList({ skills, environments, onUnlink, onToggleEnv,
                     onToggleEnv={onToggleEnv}
                     onExport={onExport}
                     onViewContent={onViewContent}
+                    onRemove={onRemove}
+                    isExternal={isExternal}
                   />
                 ))}
                 {/* 最后一行只有 1 个 skill 时补空占位保持对齐 */}

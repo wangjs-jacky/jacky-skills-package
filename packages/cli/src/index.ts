@@ -14,6 +14,8 @@ import { registerUninstallCommand } from './commands/uninstall.js'
 import { registerListCommand } from './commands/list.js'
 import { registerConfigCommand } from './commands/config.js'
 import { registerProfileCommand } from './commands/profile.js'
+import { registerScanAgentsCommand } from './commands/scan-agents.js'
+import { registerAddCommand } from './commands/add.js'
 
 // 版本号
 const VERSION = '0.3.1'
@@ -37,6 +39,8 @@ registerUninstallCommand(cli)
 registerListCommand(cli)
 registerConfigCommand(cli)
 registerProfileCommand(cli)
+registerScanAgentsCommand(cli)
+registerAddCommand(cli)
 
 /**
  * 判断是否为 CAC 相关错误

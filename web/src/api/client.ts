@@ -83,6 +83,10 @@ export interface SkillInfo {
   installedEnvironments?: string[]
   installedAt?: string
   description?: string
+  originPath?: string
+  remoteUrl?: string
+  installedVia?: 'scan' | 'download'
+  invalid?: boolean
 }
 
 export interface ListSkillsResult {
@@ -287,6 +291,15 @@ export const skillsApi = {
       return safeTauriInvoke<{ exported: string[]; errors: string[]; targetPath: string }>('export_skills', { skillNames, targetPath })
     }
     return api.post('skills/export', { json: { skillNames, targetPath } }).json<ApiResponse<{ exported: string[]; errors: string[]; targetPath: string }>>()
+  },
+
+  // 外部 Skill 管理
+  async scanAgents(force: boolean = false): Promise<ApiResponse<{ scanned: number; registered: number; skipped: number; skills: Array<{ name: string; path: string; description?: string; action: string }> }>> {
+    return safeTauriInvoke('scan_agents_directory', { force })
+  },
+
+  async removeExternalSkill(name: string): Promise<ApiResponse<void>> {
+    return safeTauriInvoke('remove_external_skill', { name })
   },
 }
 

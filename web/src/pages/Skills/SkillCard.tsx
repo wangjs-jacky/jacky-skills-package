@@ -5,10 +5,12 @@ import type { SkillInfo, EnvironmentInfo } from '../../api/client'
 interface SkillCardProps {
   skill: SkillInfo
   environments: EnvironmentInfo[]
-  onUnlink: (name: string) => void
+  onUnlink?: (name: string) => void
   onToggleEnv: (name: string, env: string, enable: boolean) => void
-  onExport: (name: string) => void
+  onExport?: (name: string) => void
   onViewContent: (name: string) => void
+  onRemove?: (name: string) => void
+  isExternal?: boolean
 }
 
 // 颜色方案缓存，避免每次渲染重复计算
@@ -28,7 +30,7 @@ function getSkillColor(name: string) {
   return result
 }
 
-function SkillCard({ skill, environments, onUnlink, onToggleEnv, onExport, onViewContent }: SkillCardProps) {
+function SkillCard({ skill, environments, onUnlink, onToggleEnv, onExport, onViewContent, onRemove, isExternal }: SkillCardProps) {
   const installedEnvs = skill.installedEnvironments || []
   const colorScheme = getSkillColor(skill.name)
 
@@ -91,22 +93,36 @@ function SkillCard({ skill, environments, onUnlink, onToggleEnv, onExport, onVie
             >
               <Eye size={16} />
             </button>
-            <button
-              data-testid={`skill-export-btn-${skill.name}`}
-              onClick={() => onExport(skill.name)}
-              className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-blue)] hover:bg-[var(--color-blue-dim)] transition-all duration-200"
-              title="Export"
-            >
-              <Download size={16} />
-            </button>
-            <button
-              data-testid={`skill-unlink-btn-${skill.name}`}
-              onClick={() => onUnlink(skill.name)}
-              className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-red)] hover:bg-[var(--color-red-dim)] transition-all duration-200"
-              title="Unlink"
-            >
-              <Trash2 size={16} />
-            </button>
+            {onExport && (
+              <button
+                data-testid={`skill-export-btn-${skill.name}`}
+                onClick={() => onExport(skill.name)}
+                className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-blue)] hover:bg-[var(--color-blue-dim)] transition-all duration-200"
+                title="Export"
+              >
+                <Download size={16} />
+              </button>
+            )}
+            {onUnlink && (
+              <button
+                data-testid={`skill-unlink-btn-${skill.name}`}
+                onClick={() => onUnlink(skill.name)}
+                className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-red)] hover:bg-[var(--color-red-dim)] transition-all duration-200"
+                title="Unlink"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+            {isExternal && onRemove && (
+              <button
+                data-testid={`skill-remove-btn-${skill.name}`}
+                onClick={() => onRemove(skill.name)}
+                className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-red)] hover:bg-[var(--color-red-dim)] transition-all duration-200"
+                title="Remove from management"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
           </div>
         </div>
 

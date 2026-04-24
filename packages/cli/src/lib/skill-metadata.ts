@@ -11,6 +11,7 @@ import { verbose } from './log.js'
  */
 export interface SkillMetadata {
   category?: string
+  description?: string
 }
 
 /**
@@ -119,6 +120,9 @@ export function readSkillMetadata(skillPath: string): SkillMetadata {
 
       if (typeof frontmatter.category === 'string') {
         metadata.category = frontmatter.category
+      }
+      if (typeof frontmatter.description === 'string') {
+        metadata.description = frontmatter.description
       }
     } catch (err) {
       verbose(`Failed to parse SKILL.md frontmatter: ${(err as Error).message}`)

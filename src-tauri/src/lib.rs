@@ -5,7 +5,7 @@ mod services;
 pub mod commands;
 
 pub use error::{AppError, Result};
-pub use models::{SkillInfo, SkillSource, SourceFolder, AppConfig, InstallMethod};
+pub use models::{SkillInfo, SkillSource, SourceFolder, AppConfig, InstallMethod, InstalledVia};
 pub use utils::*;
 pub use services::{ConfigService, Registry, has_skill_hooks, has_skill_hooks_in_settings, merge_skill_hooks, remove_skill_hooks, start_registry_watcher};
 pub use commands::AppState;

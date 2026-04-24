@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use tauri::State;
 
 use crate::{
-    AppConfig, ConfigService, InstallMethod, Registry, SkillInfo, SkillSource, SourceFolder,
+    AppConfig, ConfigService, InstallMethod, InstalledVia, Registry, SkillInfo, SkillSource, SourceFolder,
     get_home_dir, get_linked_dir,
     merge_skill_hooks, remove_skill_hooks, has_skill_hooks, has_skill_hooks_in_settings,
 };
@@ -547,12 +547,19 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<ListSkillsResult,
         .filter(|s| valid_names.contains(&s.name))
         .collect::<Vec<_>>();
 
-    // 补充 description 和 category（从 SKILL.md frontmatter 解析）
+    // 补充 description、category 和 marketplace 健康状态
     for skill in &mut skills {
         let path = resolve_skill_path(&skill.path);
         skill.description = extract_description(&path);
         if skill.category.is_none() {
             skill.category = extract_category(&path);
+        }
+
+        // marketplace skill 检测原始路径有效性
+        if skill.source == SkillSource::Marketplace {
+            let origin = skill.origin_path.as_deref().map(PathBuf::from);
+            let origin_valid = origin.as_ref().map_or(false, |p| p.is_dir());
+            skill.invalid = if origin_valid { None } else { Some(true) };
         }
     }
 
@@ -619,6 +626,10 @@ pub async fn link_skill(path: String, state: State<'_, AppState>) -> Result<Vec<
             installed_at: Some(Utc::now().to_rfc3339()),
             description: extract_description(dir),
             category: extract_category(dir),
+            origin_path: None,
+            remote_url: None,
+            installed_via: None,
+            invalid: None,
         };
         registry.register(skill_info).map_err(|e| e.to_string())?;
         linked_names.push(skill_name);
@@ -894,4 +905,169 @@ pub async fn environment_status() -> Result<Vec<EnvironmentStatus>, String> {
             global_exists: Path::new(&env.global_path).exists(),
         })
         .collect())
+}
+
+// ==================== 外部 Skill 管理 ====================
+
+/// 扫描结果中的单个 skill 信息
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScannedSkillInfo {
+    pub name: String,
+    pub path: String,
+    pub description: Option<String>,
+    pub category: Option<String>,
+    pub action: String, // "registered" | "updated" | "skipped"
+}
+
+/// 扫描结果
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScanAgentsResult {
+    pub scanned: u32,
+    pub registered: u32,
+    pub skipped: u32,
+    pub skills: Vec<ScannedSkillInfo>,
+}
+
+/// 扫描 .agents/skills/ 目录，注册外部 skill
+#[tauri::command]
+pub async fn scan_agents_directory(
+    force: Option<bool>,
+    state: State<'_, AppState>,
+) -> Result<ScanAgentsResult, String> {
+    // .agents/skills/ 固定在用户主目录下
+    let home = get_home_dir().map_err(|e| e.to_string())?;
+    let agents_path = home.join(".agents").join("skills");
+    log::info!("scan_agents_directory: agents_path={:?}", agents_path);
+    let force = force.unwrap_or(false);
+
+    let mut result = ScanAgentsResult {
+        scanned: 0,
+        registered: 0,
+        skipped: 0,
+        skills: Vec::new(),
+    };
+
+    if !agents_path.is_dir() {
+        return Ok(result);
+    }
+
+    let mut registry = state.registry.lock().map_err(|e| e.to_string())?;
+
+    let entries = fs::read_dir(&agents_path).map_err(|e| e.to_string())?;
+    for entry in entries {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+
+        if !path.is_dir() {
+            continue;
+        }
+
+        // 检查是否包含 SKILL.md
+        if !path.join("SKILL.md").is_file() && !path.join("skill.md").is_file() {
+            continue;
+        }
+
+        result.scanned += 1;
+
+        let name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .ok_or_else(|| "Invalid skill name".to_string())?
+            .to_string();
+
+        let description = extract_description(&path);
+        let category = extract_category(&path);
+
+        // 去重：linked skill 不覆盖
+        if let Some(existing) = registry.get_skill(&name) {
+            if existing.source == SkillSource::Linked {
+                result.skipped += 1;
+                result.skills.push(ScannedSkillInfo {
+                    name,
+                    path: path.to_string_lossy().to_string(),
+                    description,
+                    category,
+                    action: "skipped-linked".to_string(),
+                });
+                continue;
+            }
+
+            if !force {
+                result.skipped += 1;
+                result.skills.push(ScannedSkillInfo {
+                    name,
+                    path: path.to_string_lossy().to_string(),
+                    description,
+                    category,
+                    action: "skipped-duplicate".to_string(),
+                });
+                continue;
+            }
+        }
+
+        // 注册
+        let skill_info = SkillInfo {
+            name: name.clone(),
+            path: path.to_string_lossy().to_string(),
+            source: SkillSource::Marketplace,
+            installed_environments: registry.get_skill(&name).and_then(|s| s.installed_environments),
+            installed_at: Some(Utc::now().to_rfc3339()),
+            description: description.clone(),
+            category: category.clone(),
+            origin_path: Some(path.to_string_lossy().to_string()),
+            remote_url: None,
+            installed_via: Some(InstalledVia::Scan),
+            invalid: None,
+        };
+        registry.register(skill_info).map_err(|e| e.to_string())?;
+
+        result.registered += 1;
+        result.skills.push(ScannedSkillInfo {
+            name,
+            path: path.to_string_lossy().to_string(),
+            description,
+            category,
+            action: "registered".to_string(),
+        });
+    }
+
+    Ok(result)
+}
+
+/// 移除外部 skill（仅取消管理，不删源文件）
+#[tauri::command]
+pub async fn remove_external_skill(
+    name: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut registry = state.registry.lock().map_err(|e| e.to_string())?;
+    let skill = registry
+        .get_skill(&name)
+        .ok_or_else(|| format!("Skill '{}' not found", name))?;
+
+    if skill.source != SkillSource::Marketplace {
+        return Err(format!("Skill '{}' is not an external skill", name));
+    }
+
+    // 从所有已安装环境卸载
+    if let Some(ref envs) = skill.installed_environments {
+        for env in envs {
+            if let Ok((_label, env_dir)) = env_path(env) {
+                let target = env_dir.join(&name);
+                let _ = remove_path(&target);
+            }
+        }
+    }
+
+    // 移除 hooks
+    if has_skill_hooks_in_settings(&name) {
+        let _ = remove_skill_hooks(&name);
+    }
+
+    // 从 registry 注销（不删原始文件）
+    registry.unregister(&name).map_err(|e| e.to_string())?;
+
+    Ok(())
 }

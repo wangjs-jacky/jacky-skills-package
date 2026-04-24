@@ -14,6 +14,21 @@ pub struct SkillInfo {
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub category: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub origin_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remote_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub installed_via: Option<InstalledVia>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invalid: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum InstalledVia {
+    Scan,
+    Download,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

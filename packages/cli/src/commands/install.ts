@@ -46,9 +46,9 @@ import {
 const DEFAULT_ENVS: Environment[] = ['claude-code', 'cursor', 'opencode', 'codex']
 
 /**
- * 查找 skill（先 linked，后 global）
+ * 查找 skill（先 linked，后 global，再 marketplace registry）
  */
-export function findSkill(name: string): { path: string; source: 'linked' | 'global'; health?: 'broken' } | null {
+export function findSkill(name: string): { path: string; source: 'linked' | 'global' | 'marketplace'; health?: 'broken' } | null {
   // 先查找 linked
   const linkedPath = resolve(getLinkedDir(), name)
   if (existsSync(linkedPath)) {
@@ -69,6 +69,15 @@ export function findSkill(name: string): { path: string; source: 'linked' | 'glo
   const globalPath = resolve(getGlobalSkillsDir(), name)
   if (existsSync(globalPath)) {
     return { path: globalPath, source: 'global' }
+  }
+
+  // 最后查找 marketplace registry（外部 skill）
+  const registrySkill = getSkill(name)
+  if (registrySkill && registrySkill.source === 'marketplace') {
+    const skillPath = registrySkill.originPath || registrySkill.path
+    if (existsSync(skillPath)) {
+      return { path: skillPath, source: 'marketplace' }
+    }
   }
 
   return null
@@ -499,7 +508,7 @@ async function handleProfileInstall(options: ProfileInstallOptions): Promise<voi
   }
 
   // 过滤掉不可用的 skills
-  const availableSkills: { name: string; path: string; source: 'linked' | 'global' }[] = []
+  const availableSkills: { name: string; path: string; source: 'linked' | 'global' | 'marketplace' }[] = []
   const missingSkills: string[] = []
   const brokenSkills: string[] = []
 
