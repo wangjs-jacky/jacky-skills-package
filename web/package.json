@@ -11,6 +11,7 @@
     "@tanstack/react-virtual": "^3.13.23",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-dialog": "^2.6.0",
+    "@tauri-apps/plugin-shell": "^2.3.5",
     "ky": "^1.2.0",
     "lucide-react": "^0.314.0",
     "react": "^18.2.0",

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { open } from '@tauri-apps/plugin-shell'
 import { useStore } from '../../stores'
 import { configApi, environmentsApi, type EnvironmentInfo } from '../../api/client'
 import { checkForUpdate, getAppVersion, type UpdateInfo } from '../../api/update'
@@ -286,15 +287,13 @@ export default function SettingsPage() {
               <p className="text-xs text-[var(--color-text-muted)] font-mono mb-2">
                 Current: v{updateInfo.current_version} → Latest: v{updateInfo.latest_version}
               </p>
-              <a
-                href={`https://github.com/wangjs-jacky/jacky-skills-package/releases/tag/v${updateInfo.latest_version}`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => open(`https://github.com/wangjs-jacky/jacky-skills-package/releases/tag/v${updateInfo.latest_version}`)}
                 className="inline-flex items-center gap-1 text-xs font-mono text-[var(--color-blue)] hover:underline"
               >
                 <ExternalLink size={12} />
                 View Release Notes
-              </a>
+              </button>
             </div>
           )}
         </div>

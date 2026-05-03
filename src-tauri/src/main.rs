@@ -13,7 +13,8 @@ fn main() {
 
     let mut builder = tauri::Builder::default()
         .manage(app_state)
-        .plugin(tauri_plugin_dialog::init());
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init());
 
     // E2E 测试 WebDriver 插件（仅 debug 构建）
     #[cfg(debug_assertions)]
