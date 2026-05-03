@@ -48,6 +48,7 @@ export type Environment =
   | 'pochi'
   | 'adal'
   | 'kimi-cli'
+  | 'hermes'
   | 'replit'
 
 /**
@@ -295,6 +296,12 @@ export const ENVIRONMENTS: Record<Environment, EnvironmentConfig> = {
     label: 'Kimi Code CLI',
     globalPath: join(homedir(), '.config', 'agents', 'skills'),
     projectPaths: ['.agents/skills/'],
+  },
+  hermes: {
+    name: 'hermes',
+    label: 'Hermes Agent',
+    globalPath: join(homedir(), '.hermes', 'skills'),
+    projectPaths: ['.hermes/skills/'],
   },
   replit: {
     name: 'replit',
